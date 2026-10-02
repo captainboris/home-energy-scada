@@ -1,0 +1,27 @@
+product:
+  name: home-energy-scada
+  version: 0.6.2
+  status: release-candidate
+  baseline: 0.6.1
+
+components:
+  frontend: 0.6.2
+  web_api: 0.6.2
+  lightsail_collector: 0.5.0
+  infrastructure: unchanged-from-0.6.1
+
+validation:
+  backend_api_tests: 67
+  collector_tests: 23
+  frontend_tests: 31
+  automated_failures: 0
+  browser_device_smoke: pending
+
+production_changes_during_generation:
+  aws_resources: false
+  collector: false
+  lightsail: false
+  dynamodb_schema_or_data: false
+  scheduler: false
+  ingestion_frequency: false
+  daily_energy_semantics: false

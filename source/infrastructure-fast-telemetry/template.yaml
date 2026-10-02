@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Home Energy v0.5.0 fast telemetry add-on (does not contain or update the REST Collector)
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: home-energy
+    AllowedPattern: '[a-z][a-z0-9-]{2,30}'
+  SiteId:
+    Type: String
+    Default: home
+    AllowedPattern: '[A-Za-z0-9_-]{1,32}'
+  ExistingWebRoleName:
+    Type: String
+    MinLength: 1
+    Description: IAM role name currently used by the existing home-energy-web Lambda.
+
+Resources:
+  TelemetryTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${ProjectName}-telemetry'
+      BillingMode: PAY_PER_REQUEST
+      TableClass: STANDARD
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: false
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: DataClass
+          Value: fast-telemetry-historian
+
+  TelemetryCollectorUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Sub '${ProjectName}-ws-collector'
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Workload
+          Value: lightsail-fast-telemetry
+
+  TelemetryCollectorPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-telemetry-writer'
+      Users: [!Ref TelemetryCollectorUser]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: WriteOnlyThisSiteTelemetry
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+            Resource: !GetAtt TelemetryTable.Arn
+            Condition:
+              ForAllValues:StringLike:
+                dynamodb:LeadingKeys:
+                  - !Sub 'SITE#${SiteId}'
+                  - !Sub 'SITE#${SiteId}#DAY#*'
+
+  ExistingWebTelemetryReadPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-telemetry-reader'
+      Roles: [!Ref ExistingWebRoleName]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ReadOnlyThisSiteTelemetry
+            Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:Query
+            Resource: !GetAtt TelemetryTable.Arn
+            Condition:
+              ForAllValues:StringLike:
+                dynamodb:LeadingKeys:
+                  - !Sub 'SITE#${SiteId}'
+                  - !Sub 'SITE#${SiteId}#DAY#*'
+
+Outputs:
+  TelemetryTableName:
+    Value: !Ref TelemetryTable
+  TelemetryTableArn:
+    Value: !GetAtt TelemetryTable.Arn
+  TelemetryCollectorUserName:
+    Value: !Ref TelemetryCollectorUser
+  ExistingWebRoleUpdated:
+    Value: !Ref ExistingWebRoleName
+  CollectorSafetyBoundary:
+    Value: This stack contains no Lambda, Scheduler, EventBridge, history table, or REST Collector resource.
+

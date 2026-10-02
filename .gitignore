@@ -1,0 +1,49 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials
+aws-credentials
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# Node / frontend build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+source/frontend-react/vite.config.js
+
+# Generated release artifacts
+artifacts/
+deployment/
+rollback/
+SHA256SUMS-*.txt
+*.zip
+
+# Runtime captures and logs
+*.log
+*.jsonl
+captures/
+data/
+!source/lightsail-collector/tests/fixtures/*.jsonl
+
+# Editors and operating systems
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~

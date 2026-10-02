@@ -1,0 +1,272 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Home Energy v0.4.1 - installation-aware analytics and structured API observability
+Parameters:
+  ProjectName:
+    Type: String
+    Default: home-energy
+    AllowedPattern: '[a-z][a-z0-9-]{2,30}'
+  AppPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 10
+    MaxLength: 256
+    Description: Dashboard password (10-256 characters).
+  FoxApiKey:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    Description: Your FoxESS Open API key. Collector only.
+  FoxDeviceSn:
+    Type: String
+    NoEcho: true
+    MinLength: 1
+    Description: Inverter serial number (not battery or data logger SN).
+  CollectionEnabled:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['false', 'true']
+    Description: Keep false until the ZIP is uploaded to BOTH Lambda functions and the collector test succeeds.
+  CollectIntervalMinutes:
+    Type: Number
+    Default: 5
+    AllowedValues: [2, 5]
+  FoxCallsPerDay:
+    Type: Number
+    Default: 1000
+    MinValue: 300
+    MaxValue: 1400
+    Description: This app's sliding 24h attempt budget; other Fox integrations also use the upstream quota.
+  ReserveSocFallbackPct:
+    Type: Number
+    Default: 40
+    MinValue: 0
+    MaxValue: 100
+    Description: Used only when Fox minSocOnGrid cannot be read.
+  FoxessDataStartDate:
+    Type: String
+    Default: '2026-09-10'
+    AllowedPattern: '^20[0-9]{2}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])$'
+    Description: First local date on which FoxESS report and historian data are expected.
+  BatteryInstallDate:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|^20[0-9]{2}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])$'
+    Description: Battery installation date; leave blank to use FoxessDataStartDate.
+Conditions:
+  CollectionOn: !Equals [!Ref CollectionEnabled, 'true']
+  FastCollection: !Equals [!Ref CollectIntervalMinutes, 2]
+Resources:
+  HistoryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-history'
+      BillingMode: PROVISIONED
+      TableClass: STANDARD
+      ProvisionedThroughput:
+        ReadCapacityUnits: 25
+        WriteCapacityUnits: 25
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+        - AttributeName: sk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+  WebLog:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-web'
+      RetentionInDays: 14
+  CollectorLog:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-collector'
+      RetentionInDays: 14
+  WebRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: dashboard-database
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:Query]
+                Resource: !GetAtt HistoryTable.Arn
+                Condition:
+                  ForAllValues:StringLike:
+                    dynamodb:LeadingKeys: ['SITE#home', 'SITE#home#DAY#*', 'AUTH#*']
+              - Effect: Allow
+                Action: [dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+                Resource: !GetAtt HistoryTable.Arn
+                Condition:
+                  ForAllValues:StringLike:
+                    dynamodb:LeadingKeys: ['AUTH#*']
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-web:*'
+  CollectorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: lambda.amazonaws.com}
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: collector-database
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:Query, dynamodb:PutItem, dynamodb:UpdateItem]
+                Resource: !GetAtt HistoryTable.Arn
+                Condition:
+                  ForAllValues:StringLike:
+                    dynamodb:LeadingKeys: ['SITE#home', 'SITE#home#DAY#*']
+              - Effect: Allow
+                Action: dynamodb:DeleteItem
+                Resource: !GetAtt HistoryTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys: ['SITE#home']
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${ProjectName}-collector:*'
+  WebFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: WebLog
+    Properties:
+      FunctionName: !Sub '${ProjectName}-web'
+      Runtime: python3.12
+      Architectures: [arm64]
+      Handler: index.web
+      MemorySize: 512
+      Timeout: 60
+      Role: !GetAtt WebRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref HistoryTable
+          SITE_ID: home
+          APP_PASSWORD: !Ref AppPassword
+          COLLECT_INTERVAL_SECONDS: !If [FastCollection, '120', '300']
+          FOX_CALLS_PER_DAY: !Ref FoxCallsPerDay
+          FOXESS_DATA_START_DATE: !Ref FoxessDataStartDate
+          BATTERY_INSTALL_DATE: !Ref BatteryInstallDate
+      Code:
+        ZipFile: |
+          def web(event, context):
+              return {"statusCode": 503, "headers": {"Content-Type":"text/plain; charset=utf-8"}, "body": "Upload the v0.4 Web backend ZIP and attach the v0.4 frontend layer."}
+  CollectorFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: CollectorLog
+    Properties:
+      FunctionName: !Sub '${ProjectName}-collector'
+      Runtime: python3.12
+      Architectures: [arm64]
+      Handler: index.collect
+      MemorySize: 256
+      Timeout: 180
+      Role: !GetAtt CollectorRole.Arn
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref HistoryTable
+          SITE_ID: home
+          FOX_API_KEY: !Ref FoxApiKey
+          FOX_DEVICE_SN: !Ref FoxDeviceSn
+          FOX_NAIVE_TIMEZONE: UTC
+          FOX_CALLS_PER_DAY: !Ref FoxCallsPerDay
+          RESERVE_SOC_FALLBACK_PCT: !Ref ReserveSocFallbackPct
+      Code:
+        ZipFile: |
+          def collect(event, context):
+              return {"ok": False, "error": "UPLOAD_ZIP_FIRST", "message": "Upload the v0.4 Collector ZIP first."}
+  WebUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt WebFunction.Arn
+      AuthType: NONE
+      InvokeMode: BUFFERED
+  WebUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WebFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+  WebInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref WebFunction
+      Action: lambda:InvokeFunction
+      Principal: '*'
+      InvokedViaFunctionUrl: true
+  ScheduleGroup:
+    Type: AWS::Scheduler::ScheduleGroup
+    Properties:
+      Name: !Sub '${ProjectName}-collection'
+  SchedulerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: scheduler.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+              ArnEquals:
+                aws:SourceArn: !GetAtt ScheduleGroup.Arn
+      Policies:
+        - PolicyName: invoke-collector-only
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt CollectorFunction.Arn
+  CollectionSchedule:
+    Type: AWS::Scheduler::Schedule
+    Properties:
+      Name: !Sub '${ProjectName}-poll'
+      GroupName: !Ref ScheduleGroup
+      State: !If [CollectionOn, ENABLED, DISABLED]
+      ScheduleExpression: !Sub 'rate(${CollectIntervalMinutes} minutes)'
+      ScheduleExpressionTimezone: Australia/Melbourne
+      FlexibleTimeWindow: {Mode: 'OFF'}
+      Target:
+        Arn: !GetAtt CollectorFunction.Arn
+        RoleArn: !GetAtt SchedulerRole.Arn
+        Input: '{"action":"poll"}'
+        RetryPolicy:
+          MaximumEventAgeInSeconds: 300
+          MaximumRetryAttempts: 1
+Outputs:
+  DashboardUrl:
+    Description: Open after uploading the ZIP to both functions.
+    Value: !GetAtt WebUrl.FunctionUrl
+  WebFunctionName:
+    Value: !Ref WebFunction
+  CollectorFunctionName:
+    Value: !Ref CollectorFunction
+  HistoryTableName:
+    Value: !Ref HistoryTable
+  ScheduleName:
+    Value: !Ref CollectionSchedule
+  ScheduleGroupName:
+    Value: !Ref ScheduleGroup

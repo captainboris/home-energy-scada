@@ -1,0 +1,4 @@
+boto3==1.43.107
+moto[dynamodb]==5.2.3
+aiohttp>=3.10,<4
+wasmtime>=20,<40

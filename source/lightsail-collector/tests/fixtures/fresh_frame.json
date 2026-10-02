@@ -1,0 +1,17 @@
+{
+  "errno": 0,
+  "msg": "success",
+  "result": {
+    "node": {
+      "solar": {"power": {"value": "0", "unit": "W"}},
+      "load": {"power": {"value": "418", "unit": "W"}},
+      "grid": {"power": {"value": "17", "unit": "W"}, "gridToHidden": 1},
+      "bat": {"power": {"value": "401", "unit": "W"}, "soc": 92, "charge": 2, "batToDevice": 1}
+    },
+    "lastUpdateDate": "Updated within 1 minute",
+    "workMode": "SelfUse",
+    "timeDiff": 5,
+    "consumeTs": 1790683311398
+  }
+}
+

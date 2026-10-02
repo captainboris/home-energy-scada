@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <title>家庭能源</title>
+  <link rel="stylesheet" href="/shared.css">
+  <script src="/shared.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body data-title-key="app.title">
+<main>
+  <header>
+    <div><div class="eyebrow">HOME ENERGY / 05</div><h1 data-i18n="app.title">家庭能源</h1><p class="muted" data-i18n="overview.subtitle">光伏、用电与电池，一起看清楚。</p></div>
+    <div class="actions">
+      <nav class="nav" data-i18n-aria="nav.label" aria-label="页面"><a class="active" href="/" data-i18n="nav.overview">概览</a><a id="daily-link" href="/daily" data-i18n="nav.daily">能源分析</a></nav>
+      <div class="language-toggle" aria-label="Language"><button type="button" data-language="zh-CN">中文</button><span>|</span><button type="button" data-language="en">EN</button></div>
+      <span id="mode" class="pill" hidden>FOX · HYBRID HISTORIAN</span><button id="logout" hidden data-i18n="common.logout">退出</button>
+    </div>
+  </header>
+  <section id="auth-loading" class="auth-loading" aria-live="polite"><span class="spinner" aria-hidden="true"></span><div data-i18n="common.checkingSession">正在恢复会话…</div></section>
+  <section id="login" class="login" hidden>
+    <h2 data-i18n="login.title">打开能源面板</h2><p class="muted" data-i18n="login.subtitle">输入你为这个网页设置的访问密码。</p>
+    <form id="login-form"><label for="password" data-i18n="login.password">访问密码</label><input id="password" type="password" autocomplete="current-password" required minlength="10" maxlength="256"><button class="primary" id="login-button" type="submit" data-i18n="login.submit">进入面板</button></form>
+    <p id="login-error" class="error" role="alert"></p>
+  </section>
+  <section id="dashboard" hidden>
+    <div id="banner" class="banner" role="status" hidden></div>
+    <div class="section-heading"><h2 data-i18n="overview.current">当前读数</h2><p class="muted" data-i18n="overview.currentNote">按自身节奏刷新，与下方历史范围独立。</p></div>
+    <div id="latest" class="latest" aria-live="polite"></div>
+    <div class="toolbar">
+      <div class="controls"><div id="period-navigator" class="period-navigator" aria-label="Period navigator"><button id="period-prev" class="period-arrow" data-i18n-aria="period.previous" aria-label="上一个时间段">‹</button><button id="period-current" class="period-current" aria-haspopup="dialog" aria-expanded="false">Today</button><button id="period-next" class="period-arrow" data-i18n-aria="period.next" aria-label="下一个时间段">›</button></div><button id="refresh" class="primary" data-i18n="common.refresh">刷新数据</button><span id="refresh-state" data-i18n="status.auto">自动刷新 · 每60秒</span></div>
+      <span id="status" class="muted" role="status" aria-live="polite"></span>
+    </div>
+    <div class="section-heading"><h2 data-i18n="overview.historian">历史趋势</h2></div>
+    <div class="range-info"><span id="range-label"></span><div class="timestamps"><span id="history-source" class="history-source"></span><span id="read-time"></span><span id="sync-time"></span></div></div>
+    <div id="charts" class="charts"></div>
+    <footer><span data-i18n="overview.footer">全部日期和时间按墨尔本显示。拖选时间段放大，双击或点击「复原」恢复。</span><span id="collector-status" data-i18n="overview.collecting">后台持续采集；退出网页不会中断历史记录。</span></footer>
+  </section>
+</main>
+<div id="period-overlay" class="period-overlay" hidden>
+  <section id="period-dialog" class="period-dialog" role="dialog" aria-modal="true" aria-labelledby="period-dialog-title">
+    <div class="period-dialog-head"><h2 id="period-dialog-title" data-i18n="period.dialog">选择时间范围</h2><button id="period-close" class="period-close" data-i18n-aria="period.close" aria-label="关闭">×</button></div>
+    <div id="period-tabs" class="period-tabs" role="tablist"></div><div id="period-body" class="period-body"></div>
+    <div class="period-footer"><span id="period-error" class="period-error" role="alert"></span><div class="period-footer-actions"><button id="period-cancel" data-i18n="period.cancel">取消</button><button id="period-apply" class="primary" data-i18n="period.apply">应用</button></div></div>
+  </section>
+</div>
+</body>
+</html>

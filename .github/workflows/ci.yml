@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Reject generated or private files
+        shell: bash
+        run: |
+          set -euo pipefail
+          forbidden="$({
+            git ls-files | grep -E '(^|/)(node_modules|dist|__pycache__|\.venv|deployment|rollback|artifacts)(/|$)' || true
+            git ls-files | grep -E '(^|/)\.env($|\.(local|production|development|test)$)|\.(pem|key|pyc|pyo|zip)$|\.tsbuildinfo$' || true
+          } | sort -u)"
+          if [[ -n "$forbidden" ]]; then
+            printf 'Forbidden tracked files:\n%s\n' "$forbidden" >&2
+            exit 1
+          fi
+
+      - name: Scan obvious credential material
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws_key_re='(AKI''A|ASI''A)[0-9A-Z]{16}'
+          private_key_re='-----BEGIN ([A-Z ]+)?PRIVATE'' KEY-----'
+          secret_re='aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'
+          if git grep -nE -- "${aws_key_re}|${private_key_re}|${secret_re}"; then
+            echo 'Credential-like material detected.' >&2
+            exit 1
+          fi
+
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: source/frontend-react/package-lock.json
+
+      - name: Install Python test dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Install frontend dependencies
+        working-directory: source/frontend-react
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: source/frontend-react
+        run: npm test
+
+      - name: Build frontend
+        working-directory: source/frontend-react
+        run: npm run build
+
+      - name: Run Backend and API tests
+        env:
+          PYTHONPATH: source:source/lightsail-collector
+        run: python -m unittest discover -s tests -p 'test_*.py' -q
+
+      - name: Run Collector tests
+        env:
+          PYTHONPATH: source/lightsail-collector
+        run: python -m unittest discover -s source/lightsail-collector/tests -p 'test_*.py' -q
