@@ -1,6 +1,6 @@
 # Home Energy SCADA
 
-Private monorepo source baseline for Home Energy SCADA v0.6.2.
+Monorepo source baseline for Home Energy SCADA v0.6.2.
 
 This repository contains the React/ECharts frontend, Web/API Lambda source,
 Lightsail WebSocket collector, infrastructure references, automated tests and
