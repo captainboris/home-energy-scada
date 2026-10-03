@@ -9,7 +9,7 @@ GitHub Actions workflow will run the automated suites.
 
 ## 1. Create an empty GitHub repository
 
-Create a private repository named `home-energy-scada`. Do not ask GitHub to add
+Create an empty repository named `home-energy-scada`. Do not ask GitHub to add
 a README, `.gitignore` or licence because this package already contains the
 repository files.
 
@@ -32,7 +32,7 @@ git commit -m "chore: import verified v0.6.2 source baseline"
 git tag -a v0.6.2-rc.1 -m "Home Energy SCADA v0.6.2 release candidate"
 ```
 
-Review the second `git status` before committing. Generated or private files
+Review the second `git status` before committing. Generated or sensitive files
 should not be listed.
 
 If Git asks for your identity:
@@ -44,15 +44,7 @@ git config --global user.email "your-github-email@example.com"
 
 ## 4. Connect and push
 
-Use the URL of the empty private GitHub repository:
-
-```bash
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/home-energy-scada.git
-git push -u origin main
-git push origin v0.6.2-rc.1
-```
-
-SSH is also valid:
+SSH is recommended when an SSH key is already configured:
 
 ```bash
 git remote add origin git@github.com:YOUR_GITHUB_USERNAME/home-energy-scada.git
@@ -60,12 +52,23 @@ git push -u origin main
 git push origin v0.6.2-rc.1
 ```
 
+HTTPS is also valid when authenticated with a supported GitHub credential:
+
+```bash
+git remote add origin https://github.com/YOUR_GITHUB_USERNAME/home-energy-scada.git
+git push -u origin main
+git push origin v0.6.2-rc.1
+```
+
 Do not use `git push --force` for the initial upload.
 
-### Windows notes
+### Windows / WSL notes
 
-PowerShell can initialise and push the repository with the same Git commands.
-If you also want to run the Python suites locally:
+PowerShell, Git Bash and WSL can all initialise and push the repository with the
+same Git commands. When developing primarily with Linux tooling, keeping the
+working tree inside the WSL filesystem is recommended.
+
+If you also want to run the Python suites from Windows PowerShell:
 
 ```powershell
 Push-Location source/frontend-react
@@ -104,7 +107,8 @@ commit those binaries to the repository.
 
 ## Normal development flow
 
-Create short-lived branches from `main`:
+Keep `main` as the accepted baseline. Create a short-lived branch for each
+change:
 
 ```bash
 git switch main
@@ -112,6 +116,9 @@ git pull --ff-only
 git switch -c feature/short-description
 ```
 
-Use `fix/`, `docs/` or `hotfix/` prefixes where appropriate. Merge reviewed,
-tested work back to `main` and delete the short-lived branch. A permanent
-`develop` branch is unnecessary for the current single-maintainer project.
+Use `feature/`, `fix/`, `docs/`, `chore/` or `hotfix/` as appropriate.
+Push the branch and open a Pull Request into `main`. Let CI complete, review the
+diff, then merge through the PR rather than pushing directly to `main`.
+
+A permanent `develop` branch is unnecessary for the current single-maintainer
+project.
