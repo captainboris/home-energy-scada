@@ -71,6 +71,11 @@ Generated ZIPs and checksums are written to `artifacts/v0.6.2/` and are
 ignored by Git. Upload immutable binaries to a GitHub Release instead of
 committing them to the repository.
 
+## Development entry point
+
+Before coding, read `AGENTS.md`. It points to the protected Product Fact Sheet
+and the living specifications that define current behaviour.
+
 ## Change governance
 
 Before modifying product behaviour, read:
