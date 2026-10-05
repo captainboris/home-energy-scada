@@ -2,6 +2,21 @@
 
 `CHANGELOG.md` 记录每个版本发生的改变；当前产品 contract 以 `PRODUCT_SPEC.md` 为准。
 
+## Unreleased
+
+### 修正
+
+- 明确 Password Login 后进入 Overview → Day → Today，不再继承上次停留的 Week/Month query 作为登录初始视图。
+- Current Readings freshness age 继续使用每个 Reading fragment 的 source timestamp，并只在 age 超过 2 分钟时显示 TTL；age-based stale threshold 同步为 2 分钟。
+- Historian 移除 `emphasis.focus=series`，Desktop Hover 与 Mobile Tooltip 不再 dim 其他 metrics 或改变 series 视觉权重。
+- Metric visibility 从 ECharts line/dot swatch legend 改为经典 native checkbox controls。
+
+### 保持
+
+- Tooltip 本身、Drag-select、Wheel Zoom、Mobile Tap Tooltip、Sync Zoom / Restore、source routing、Fast Telemetry 与 Daily Analytics semantics 不变。
+- Collector、Lightsail、DynamoDB schema、EventBridge 与 ingestion plane 不变。
+
+
 ## Repository bootstrap — 2026-10-02
 
 - 新增 Git-ready source hygiene：`.gitignore`、LF-normalising `.gitattributes`、`VERSION` 与 component `RELEASE_MANIFEST.yaml`。

@@ -16,7 +16,7 @@
 | R10 | Battery Charging / Discharging / Idle 与 power | DOM + unit | PASS |
 | R11 | Battery SOC thresholds 与 `≈` remaining kWh | DOM + unit | PASS |
 | R12 | Grid Importing / Exporting / Neutral | DOM + unit | PASS |
-| R13 | freshness 使用 source timestamp；stale 优先 | DOM + unit/source | PASS |
+| R13 | freshness 使用 per-reading source timestamp；age <=2m 不显示 TTL，>2m 才显示 | DOM + unit/source | PASS |
 | R14 | Today 完整 local-day X-axis / future blank | automated unit/source | PASS |
 | R15 | Week 完整 seven-day X-axis | automated unit/source | PASS |
 | R16 | Month 完整 calendar-month X-axis | automated unit/source | PASS |
@@ -46,8 +46,11 @@
 | R40 | session idle logout；polling 不延长 session | backend unit | PASS |
 | R41 | deployment/rollback ZIP boundary 与 checksum | artifact audit | PASS |
 | R42 | credentials/secrets 不进入 artifacts | secret scan | PASS |
+| R43 | Password Login 后 landing 为 Overview / Day / Today | unit + Browser | NOT TESTED |
+| R44 | Desktop/Mobile Tooltip interaction 不 dim/focus 其他 metrics | source + Browser/device | NOT TESTED |
+| R45 | Chart metric visibility 使用 classic native checkbox | DOM + Browser/device | NOT TESTED |
 
-v0.6.2 汇总：`42 total / 29 PASS / 0 FAIL / 13 NOT TESTED`。
+当前 checklist：`45 total / 29 PASS / 0 FAIL / 16 NOT TESTED`。
 
 `NOT TESTED` 原因：当前 build environment的 Playwright package存在，但 Chromium、Firefox、WebKit executable均缺失，且没有 real mobile device。相关 source/unit checks均通过，必须在 `DEPLOYMENT.md` 的 target-browser/device smoke中完成后才可 production release。
 

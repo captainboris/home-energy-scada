@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SessionData } from "./types";
 import { UI, t } from "./ui";
+import { loginLandingPath } from "./navigation";
 
 type Phase = "loading" | "login" | "app" | "error";
 
@@ -36,6 +37,7 @@ export function useSession() {
     });
     UI.writeStorage(UI.ACTIVITY_KEY, session.last_activity * 1000);
     acceptSession(session);
+    window.location.replace(loginLandingPath(UI.todayString()));
   }, [acceptSession, request]);
 
   const logout = useCallback(async (reason = "", broadcast = true) => {

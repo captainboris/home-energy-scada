@@ -26,8 +26,24 @@ describe("Current Readings cards", () => {
     expect(screen.getByText("Charging")).toBeTruthy();
     expect(screen.getByText("1.56 kW")).toBeTruthy();
     expect(screen.getByText("Exporting")).toBeTruthy();
-    expect(screen.getAllByText("Updated 3s ago")).toHaveLength(4);
+    expect(screen.queryByText("Updated 3s ago")).toBeNull();
     expect(container.querySelector(".battery-reading .value")?.classList.contains("soc-normal")).toBe(true);
+  });
+
+  it("shows per-reading source age only after two minutes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(130_000);
+    render(<CurrentReadings latest={{
+      pv_power_kw: { t: 7000, value: 4.21 },
+      load_power_kw: { t: 7000, value: 2.37 },
+      battery_soc_pct: { t: 7000, value: 72 },
+      battery_charge_power_kw: { t: 7000, value: 1.56 },
+      battery_discharge_power_kw: { t: 7000, value: 0 },
+      grid_import_power_kw: { t: 7000, value: 0 },
+      grid_export_power_kw: { t: 7000, value: 0.28 }
+    }} health={{ healthy: true }} />);
+
+    expect(screen.getAllByText("Updated 2m ago")).toHaveLength(4);
   });
 
   it("does not turn missing telemetry into a synthetic zero or false Idle state", () => {

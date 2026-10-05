@@ -14,8 +14,8 @@ Overview 使用 React + TypeScript + Apache ECharts，提供四实体 Current Re
 - 固定表达 PV、Home Load、Battery、Grid 四个 Energy Flow entities，不通过大量重复 Card 增加信息。
 - 页面可见且 session active 时约每 5 秒读取 Fast Telemetry；selected Historian period 不得控制或停止这套更新。
 - hidden tab 暂停 aggressive polling；重新可见时立即 catch-up，然后恢复约 5 秒 cadence。
-- freshness 必须使用 source telemetry timestamp；Browser poll 成功时间不能伪装成 sample freshness。
-- telemetry 超过 20 秒或 health unhealthy 时使用 stale styling；stale 状态优先于 flow colour。
+- freshness / TTL 必须使用每个 Reading fragment 自己的 source telemetry timestamp；不得使用 Backend `checked_at`、response time 或 Browser poll time。
+- 正常 fresh data 不显示“X 秒/分钟前更新”；只有 source age 超过 2 分钟才显示 TTL。age-based stale threshold 同为 2 分钟；`health.healthy === false` 仍可立即使用 stale styling，且 stale 状态优先于 flow colour。
 
 ### 2.1 PV
 
@@ -65,11 +65,12 @@ Current Readings 永远消费 `/api/history/live` 返回的 `latest`。只有 se
 
 ## 6. Chart interaction
 
-- Desktop：Hover Tooltip、horizontal Drag-select Zoom、cursor-anchored Wheel X-axis Zoom；无 Drag-to-Pan。
+- Desktop：Hover Tooltip、horizontal Drag-select Zoom、cursor-anchored Wheel X-axis Zoom；无 Drag-to-Pan。Hover real point/series 不得改变其他 metrics 的 opacity，也不得产生 line-width/focus 强调效果。
 - Mobile：Tap real point 固定 Tooltip；horizontal 或合理 diagonal Drag-select Zoom；明显 vertical gesture 继续 page scroll。
 - Mobile 一旦锁定 Range Selection，直到 release/cancel 前都不得被 vertical drift 抢走。
 - Drag-select 只显示 selection overlay，不显示 selection start/end/duration Tooltip。
-- 禁止 Mobile Pinch Chart Zoom 与所有 user Y-axis Zoom。
+- 禁止 Mobile Pinch Chart Zoom 与所有 user Y-axis Zoom；Mobile Tap/Tooltip 同样不得触发 series dimming/focus 视觉效果。
+- 每个 Chart 的 metric visibility 使用经典 native checkbox controls；不使用 ECharts line/dot swatch legend 作为开关。
 - 更详细 contract 见 `UI_BEHAVIOUR_SPEC.md`。
 
 ## 7. Sync Zoom 与 Restore
@@ -95,7 +96,7 @@ Energy Peaks 包含 PV、Home Load、Grid Import、Grid Export，scope 为 selec
 
 ## 11. Authentication 与 session
 
-访问使用现有 password session。30 分钟无用户 activity 自动 logout；background polling 不延长 idle session。Logout 不停止后台 ingestion。
+访问使用现有 password session。明确完成 Password Login 后，初始 landing 必须是 Overview → Day → Today（URL replace 到当天 Day）；已有有效 session 的普通 deep-link/reload 不强制改写。30 分钟无用户 activity 自动 logout；background polling 不延长 idle session。Logout 不停止后台 ingestion。
 
 ## 12. Caching 与 responsive behaviour
 
