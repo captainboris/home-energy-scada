@@ -1,6 +1,6 @@
 # Home Energy SCADA
 
-Private monorepo source baseline for Home Energy SCADA v0.6.2.
+Monorepo source baseline for Home Energy SCADA v0.6.2.
 
 This repository contains the React/ECharts frontend, Web/API Lambda source,
 Lightsail WebSocket collector, infrastructure references, automated tests and
@@ -70,6 +70,11 @@ After the frontend build:
 Generated ZIPs and checksums are written to `artifacts/v0.6.2/` and are
 ignored by Git. Upload immutable binaries to a GitHub Release instead of
 committing them to the repository.
+
+## Development entry point
+
+Before coding, read `AGENTS.md`. It points to the protected Product Fact Sheet
+and the living specifications that define current behaviour.
 
 ## Change governance
 

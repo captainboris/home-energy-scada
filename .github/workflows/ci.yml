@@ -17,8 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - name: Reject generated or private files
+      - name: Reject generated or sensitive files
         shell: bash
         run: |
           set -euo pipefail
@@ -37,11 +39,21 @@ jobs:
           set -euo pipefail
           aws_key_re='(AKI''A|ASI''A)[0-9A-Z]{16}'
           private_key_re='-----BEGIN ([A-Z ]+)?PRIVATE'' KEY-----'
-          secret_re='aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'
-          if git grep -nE -- "${aws_key_re}|${private_key_re}|${secret_re}"; then
+          aws_secret_re='aws_secret_access_key[[:space:]]*=[[:space:]]*[A-Za-z0-9/+=]{40}'
+          github_token_re='gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}'
+          openai_key_re='sk-(proj-)?[A-Za-z0-9_-]{20,}'
+          fox_password_md5_re='FOXESS_PASSWORD_MD5[[:space:]]*=[[:space:]]*[0-9a-fA-F]{32}'
+          if git grep -nE -- "${aws_key_re}|${private_key_re}|${aws_secret_re}|${github_token_re}|${openai_key_re}|${fox_password_md5_re}"; then
             echo 'Credential-like material detected.' >&2
             exit 1
           fi
+
+      - name: Scan repository history with Gitleaks
+        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
 
   test-and-build:
     runs-on: ubuntu-latest
