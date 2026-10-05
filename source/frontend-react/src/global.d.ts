@@ -17,6 +17,7 @@ interface HomeEnergyUI {
   stampLabel(value: string | number | null | undefined, full?: boolean): string;
   analyticsTimeLabel(value: string | number | null | undefined, period: Period): string;
   localInput(epoch: number): { date: string; time: string };
+  todayString(): string;
   displayDateTime(date: string, time: string): string;
   periodLabel(period: Period): string;
   periodFromUrl(): Period;
