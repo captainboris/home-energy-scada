@@ -45,6 +45,7 @@ window.HomeEnergyUI = {
   stampLabel: value => String(value ?? ""),
   analyticsTimeLabel: value => String(value ?? ""),
   localInput: () => ({ date: "2026-10-02", time: "00:00" }),
+  todayString: () => "2026-10-02",
   displayDateTime: (date, time) => `${date} ${time}`,
   periodLabel: period => period.label,
   periodFromUrl: () => ({

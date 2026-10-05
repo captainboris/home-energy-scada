@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Reading, TelemetryHealth } from "../types";
 import { ageLabel } from "../data";
-import { BATTERY_CAPACITY_KWH, FLOW_NEUTRAL_THRESHOLD_KW, REALTIME_STALE_AFTER_MS } from "../config";
+import {
+  BATTERY_CAPACITY_KWH,
+  FLOW_NEUTRAL_THRESHOLD_KW,
+  REALTIME_FRESHNESS_LABEL_AFTER_MS,
+  REALTIME_STALE_AFTER_MS
+} from "../config";
 import { directionalFlow, estimatedRemainingEnergyKwh, latestTimestamp } from "../energyFlow";
 import { UI, t, useLanguage } from "../ui";
 
@@ -19,8 +24,9 @@ function Freshness({ timestamp, old, now, language }: {
   now: number;
   language: string;
 }) {
+  const showAge = timestamp != null && now - timestamp > REALTIME_FRESHNESS_LABEL_AFTER_MS;
   return <div className="reading-footer">
-    <span className="time">{ageLabel(timestamp ?? undefined, now, language)}</span>
+    {showAge && <span className="time">{ageLabel(timestamp, now, language)}</span>}
     {old && <span className="stale-label">{t("flow.stale")}</span>}
   </div>;
 }

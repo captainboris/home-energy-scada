@@ -4,7 +4,6 @@ import { LineChart } from "echarts/charts";
 import {
   DataZoomComponent,
   GridComponent,
-  LegendComponent,
   TooltipComponent
 } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
@@ -23,11 +22,11 @@ import {
   zoomToolbarState
 } from "../zoom";
 
-echarts.use([LineChart, DataZoomComponent, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
+echarts.use([LineChart, DataZoomComponent, GridComponent, TooltipComponent, CanvasRenderer]);
 
 const GRID_LEFT = 58;
 const GRID_RIGHT = 18;
-const GRID_TOP = 58;
+const GRID_TOP = 18;
 const GRID_BOTTOM = 44;
 const DESKTOP_DRAG_THRESHOLD = 8;
 const TOUCH_DRAG_THRESHOLD = 12;
@@ -229,13 +228,6 @@ export function HistorianChart({
       if (activeTouchPointers.size === 0) multiTouch = false;
     };
     const dataZoom = () => { updateLocalZoom(readZoom(chart, fullRangeRef.current)); };
-    const legend = (event: unknown) => {
-      const selected = (event as { selected?: Record<string, boolean> }).selected ?? {};
-      for (const metric of metrics) {
-        const label = t(`metric.${metric}`);
-        if (Object.prototype.hasOwnProperty.call(selected, label)) onVisibilityChange(metric, selected[label]);
-      }
-    };
     const pointerDown = (event: PointerEvent) => {
       const touchLike = event.pointerType !== "mouse";
       if (!touchLike && event.button !== 0) return;
@@ -362,7 +354,6 @@ export function HistorianChart({
     };
 
     chart.on("datazoom", dataZoom);
-    chart.on("legendselectchanged", legend);
     chart.getZr().on("dblclick", onRestore);
     element.addEventListener("pointerdown", pointerDown, { capture: true, passive: false });
     element.addEventListener("pointermove", pointerMove, { capture: true, passive: false });
@@ -381,26 +372,17 @@ export function HistorianChart({
       chart.dispose();
       instance.current = null;
     };
-  }, [dispatchZoom, metrics, onRestore, onVisibilityChange, updateLocalZoom]);
+  }, [dispatchZoom, metrics, onRestore, updateLocalZoom]);
 
   useEffect(() => {
     const chart = instance.current;
     if (!chart) return;
     const zoom = clampZoom(localZoom.current, fullRange);
     const rows = new Map(series.map(row => [row.metric, row]));
-    const selected = Object.fromEntries(metrics.map(metric => [t(`metric.${metric}`), visibility[metric] !== false]));
     const option: EChartsCoreOption = {
       animation: false,
       backgroundColor: "transparent",
       grid: { left: GRID_LEFT, right: GRID_RIGHT, top: GRID_TOP, bottom: GRID_BOTTOM, containLabel: false },
-      legend: {
-        top: 4,
-        left: 0,
-        selected,
-        itemWidth: 15,
-        itemHeight: 8,
-        textStyle: { color: "#91a8c7", fontSize: 12 }
-      },
       tooltip: {
         trigger: "axis",
         triggerOn: hoverTooltipEnabled ? "mousemove" : "none",
@@ -466,7 +448,7 @@ export function HistorianChart({
         id: metric,
         name: t(`metric.${metric}`),
         type: "line",
-        data: rows.get(metric)?.points ?? [],
+        data: visibility[metric] === false ? [] : rows.get(metric)?.points ?? [],
         showSymbol: false,
         symbol: "circle",
         connectNulls: true,
@@ -475,7 +457,7 @@ export function HistorianChart({
         progressiveThreshold: 10000,
         lineStyle: { width: 1.4, color: colours[metric] },
         itemStyle: { color: colours[metric] },
-        emphasis: { focus: "series", lineStyle: { width: 1.4 } }
+        emphasis: { disabled: true }
       }))
     };
     chart.setOption(option, { notMerge: false, lazyUpdate: true });
@@ -537,6 +519,20 @@ export function HistorianChart({
         {toolbar.showSync && <button type="button" onClick={sync} aria-label={t("chart.syncLabel")}>{t("chart.sync")}</button>}
         {toolbar.showRestore && <button type="button" onClick={onRestore} aria-label={t("chart.restoreLabel")}>{t("chart.reset")}</button>}
       </div>}
+    </div>
+    <div className="legend chart-legend" role="group" aria-label={t(titleKey)}>
+      {metrics.map(metric => {
+        const checked = visibility[metric] !== false;
+        return <label key={metric} className={checked ? "" : "off"}>
+          <input
+            type="checkbox"
+            checked={checked}
+            onChange={event => onVisibilityChange(metric, event.target.checked)}
+            style={{ accentColor: colours[metric] }}
+          />
+          <span>{t(`metric.${metric}`)}</span>
+        </label>;
+      })}
     </div>
     <div className="echart-shell">
       <div ref={host} className="echart" role="img" aria-label={`${t(titleKey)}, ${unit}`} />
