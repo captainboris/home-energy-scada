@@ -35,6 +35,7 @@ window.HomeEnergyUI = {
     }
     return value;
   },
+  hasTranslation: key => Object.prototype.hasOwnProperty.call(labels, key),
   locale: () => "en-AU",
   setLanguage: () => undefined,
   writeStorage: () => undefined,
@@ -55,8 +56,7 @@ window.HomeEnergyUI = {
   }),
   periodQuery: () => ({}),
   writePeriodUrl: () => undefined,
-  PeriodNavigator: class { setCurrent() {} } as unknown as Window["HomeEnergyUI"]["PeriodNavigator"],
-  api: async () => { throw new Error("API is not available in component unit tests"); }
+  PeriodNavigator: class { setCurrent() {} } as unknown as Window["HomeEnergyUI"]["PeriodNavigator"]
 };
 
 afterEach(() => cleanup());

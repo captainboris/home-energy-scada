@@ -137,15 +137,6 @@ class PeriodNavigator{
   apply(){try{const period=this.activeTab==="other"?periodFrom("other",this.customDraft.fromDate,this.customDraft):this.provisional;this.current=period;this.close();this.update();writePeriodUrl(period);this.onApply(period);}catch(error){this.error.textContent=error.message;}}
 }
 
-async function api(path,controllers,options={}){
-  const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),65000);
-  try{
-    const response=await fetch(path,{...options,credentials:"same-origin",cache:"no-store",signal:controller.signal,headers:{"Content-Type":"application/json",...(options.headers||{})}});let body;
-    try{body=await response.json();}catch{const error=new Error(t("error.service",{status:response.status}));error.status=response.status;error.requestId=response.headers.get("x-request-id");throw error;}
-    if(!response.ok){const code=body.error?.code,key=`api.${code}`,requestId=body.error?.request_id||response.headers.get("x-request-id"),base=hasTranslation(key)?t(key):(language==="en"?t("error.request",{status:response.status}):(body.error?.message||t("error.request",{status:response.status}))),message=requestId?`${base}\n${t("error.requestId",{id:requestId})}`:base,error=new Error(message);error.status=response.status;error.code=code;error.requestId=requestId;throw error;}return body;
-  }finally{clearTimeout(timeout);controllers.delete(controller);}
-}
-
 document.addEventListener("DOMContentLoaded",bindLanguageToggle,{once:true});
-window.HomeEnergyUI={ZONE,IDLE_MS,ACTIVITY_KEY,LOGOUT_KEY,SOC_THRESHOLDS,$,t,locale,get language(){return language;},setLanguage,applyTranslations,writeStorage,socState,stampLabel,analyticsTimeLabel,parseDay,dayString,addDays,addMonths,todayString,localInput,displayDate,displayDateTime,periodLabel,periodFrom,periodFromUrl,periodQuery,writePeriodUrl,PeriodNavigator,api,createButton};
+window.HomeEnergyUI={ZONE,IDLE_MS,ACTIVITY_KEY,LOGOUT_KEY,SOC_THRESHOLDS,$,t,hasTranslation,locale,get language(){return language;},setLanguage,applyTranslations,writeStorage,socState,stampLabel,analyticsTimeLabel,parseDay,dayString,addDays,addMonths,todayString,localInput,displayDate,displayDateTime,periodLabel,periodFrom,periodFromUrl,periodQuery,writePeriodUrl,PeriodNavigator,createButton};
 })();
