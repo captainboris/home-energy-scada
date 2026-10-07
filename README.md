@@ -76,6 +76,10 @@ committing them to the repository.
 Before coding, read `AGENTS.md`. It points to the protected Product Fact Sheet
 and the living specifications that define current behaviour.
 
+The [source / ownership map](docs/CODE_ARCHITECTURE.md) identifies active and
+historical frontend code, module responsibilities, entrypoints and artifact
+boundaries.
+
 ## Change governance
 
 Before modifying product behaviour, read:
