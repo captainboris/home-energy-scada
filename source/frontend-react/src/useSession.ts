@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { SessionData } from "./types";
 import { UI, t } from "./ui";
 import { loginLandingPath } from "./navigation";
+import { requestJson } from "./api";
 
 type Phase = "loading" | "login" | "app" | "error";
 
@@ -15,7 +16,7 @@ export function useSession() {
   const activityBusy = useRef(false);
 
   const request = useCallback(<T,>(path: string, options: RequestInit = {}) =>
-    UI.api<T>(path, controllers.current, options), []);
+    requestJson<T>(path, controllers.current, options), []);
 
   const showLogin = useCallback((reason = "") => {
     for (const controller of controllers.current) controller.abort();

@@ -1,7 +1,5 @@
 import type { Period } from "./types";
 
-type ApiError = Error & { status?: number; code?: string; requestId?: string };
-
 interface HomeEnergyUI {
   ZONE: string;
   IDLE_MS: number;
@@ -9,6 +7,7 @@ interface HomeEnergyUI {
   LOGOUT_KEY: string;
   SOC_THRESHOLDS: { criticalBelow: number; lowBelow: number; highAt: number };
   t(key: string, variables?: Record<string, string | number>): string;
+  hasTranslation(key: string): boolean;
   locale(): string;
   readonly language: "zh-CN" | "en";
   setLanguage(language: "zh-CN" | "en"): void;
@@ -26,7 +25,6 @@ interface HomeEnergyUI {
   PeriodNavigator: new (period: Period, onApply: (period: Period) => void) => {
     setCurrent(period: Period): void;
   };
-  api<T>(path: string, controllers: Set<AbortController>, options?: RequestInit): Promise<T>;
 }
 
 declare global {

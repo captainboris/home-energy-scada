@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+### 重构
+
+- 正式 React frontend 的 HTTP transport 从 `public/shared.js` 提取至 `src/api.ts`；保留请求选项、错误翻译、401 与取消契约。Session cancellation 仍由 `useSession` 管理，查询与 polling 调度仍在页面。
+
 ### 修正
 
 - 明确 Password Login 后进入 Overview → Day → Today，不再继承上次停留的 Week/Month query 作为登录初始视图。
