@@ -86,6 +86,10 @@ Sync Zoom / Restore 仅按上述 state machine 出现；不允许通过固定显
 
 重新访问已读 period 应沿用现有 cache/read policy。Period navigation 可以重置 Chart zoom，但不得重置 global Current Readings live cursor，也不得把 historical period 的 latest sample 注入 Current Readings。
 
+## Period picker lifecycle
+
+Picker 的开关、选择与关闭动画设计不变。React 卸载结束其自身监听、关闭动画 timer 与 `dialog-open` 滚动锁；销毁可重复调用，之后不能重新开窗、安排动画或聚焦已卸载的按钮。重新挂载创建一个新的 picker owner。
+
 ## Responsive
 
 - Desktop：4-column compact Current Readings，Chart 高度适配 viewport。

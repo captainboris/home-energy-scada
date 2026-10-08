@@ -61,3 +61,19 @@
 3. 按本表逐项归类。
 4. 任何 FAIL：修复后重新执行相关项及相邻 regression。
 5. Browser/device NOT TESTED 项必须进入 `TESTING.md` 与 deployment smoke，不得伪报 PASS。
+
+
+## PR4 page lifecycle validation — 2026-10-08
+
+以下是本次 frontend 变更的证据，不覆盖上表历史 release/device 状态。
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| Period/request/session replacement 后的 success/error/401/finally 无 stale 写入 | deferred-promise page DOM tests | PASS |
+| Daily completion-based 60s 续排、manual timer replacement、hidden/visible、logout/unmount | fake-timer page tests + mocked Chromium clock/visibility | PASS |
+| Snapshot/live handoff：限定 range、多个 batch、live overlap、zero/null、cursor 单调、历史 latest 不写实时卡片 | page DOM + pure merge tests | PASS |
+| Picker destroy 幂等、监听/close timer/scroll lock cleanup、无 detached focus、StrictMode rebuild | real shared.js DOM tests + mocked Chromium logout/login | PASS |
+| PR3 chart regression：Desktop Hover/selection/Wheel、Sync/Restore、live zoom；mobile Tooltip/gesture 模拟 | 原有 Chromium mock browser smoke | PASS |
+| 真实手机纵向滚动、Safari/iOS、实际 background-tab throttling、生产 API/deployment | 本环境未执行；在目标浏览器/设备及部署 smoke 复验 R07、R17–R27、R30、R43 与上述生命周期项 | NOT TESTED |
+
+Browser 使用真实 headless Chromium，但 API、clock 与 visibility 可控模拟；mobile 使用合成 pointer events。不得据此标记真实设备或生产部署 PASS。

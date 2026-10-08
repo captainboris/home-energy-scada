@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HistoryData, LiveData, Period, Reading, TelemetryHealth, ZoomRange } from "./types";
-import { mergeLatest, mergePointSeries } from "./data";
+import { appendLiveHistory, liveWithinRange, mergeLatest, mergePointSeries } from "./data";
 import { nextCursor, shouldAppendToHistorian, shouldPollCurrentReadings } from "./live";
 import { REALTIME_INITIAL_LOOKBACK_MS, REALTIME_POLL_INTERVAL_MS } from "./config";
 import { UI, t, useLanguage } from "./ui";
@@ -49,13 +49,22 @@ function Overview() {
   const [restoreVersion, setRestoreVersion] = useState(0);
   const generation = useRef(0);
   const liveCursor = useRef<number | null>(null);
-  const liveInFlight = useRef(false);
+  // Only packets accepted while this period's snapshot is pending are replayed.
+  const pendingLive = useRef<{ ticket: number; packet: LiveData | null } | null>(null);
+  const stopLive = useRef<() => void>(() => undefined);
   const periodRef = useRef(period);
   periodRef.current = period;
+
+  const stopData = useCallback(() => {
+    generation.current += 1;
+    pendingLive.current = null;
+    stopLive.current();
+  }, []);
 
   const loadHistory = useCallback(async (manual = false) => {
     if (session.phase !== "app") return;
     const ticket = ++generation.current;
+    pendingLive.current = { ticket, packet: pendingLive.current?.packet ?? null };
     setBusy(true);
     setError("");
     setStatus(t("status.readingHistory"));
@@ -64,7 +73,8 @@ function Overview() {
     try {
       const body = await session.request<{ data: HistoryData }>(`/api/history/unified?${params}`);
       if (ticket !== generation.current) return;
-      setHistory(body.data);
+      const packet = pendingLive.current?.packet;
+      setHistory(packet ? appendLiveHistory(body.data, packet) : body.data);
       if (body.data.last_source_timestamp != null && shouldAppendToHistorian(period, Date.now())) {
         liveCursor.current = liveCursor.current == null
           ? body.data.last_source_timestamp
@@ -72,95 +82,127 @@ function Overview() {
       }
       setStatus(manual ? t("status.reloaded") : t("status.checked"));
     } catch (reason) {
+      if (ticket !== generation.current) return;
       const apiError = reason as Error & { status?: number };
-      if (apiError.status === 401) session.showLogin(apiError.message);
+      if (apiError.status === 401) {
+        stopData();
+        setBusy(false);
+        session.showLogin(apiError.message);
+      }
       else {
         setError(apiError.message);
         setStatus(t("status.failed"));
       }
     } finally {
-      if (ticket === generation.current) setBusy(false);
+      if (ticket === generation.current) {
+        pendingLive.current = null;
+        setBusy(false);
+      }
     }
-  }, [period, session.phase, session.request, session.showLogin]);
+  }, [period, session.phase, session.request, session.showLogin, stopData]);
 
-  useEffect(() => { loadHistory(false); }, [loadHistory]);
-
-  useEffect(() => {
-    const pop = () => setPeriod(UI.periodFromUrl());
-    window.addEventListener("popstate", pop);
-    return () => window.removeEventListener("popstate", pop);
-  }, []);
+  useEffect(() => { loadHistory(false);
+    return () => {
+      generation.current += 1;
+      pendingLive.current = null;
+    };
+  }, [loadHistory]);
 
   useEffect(() => {
     if (session.phase !== "app") return;
     let stopped = false;
+    let inFlight = false;
+    let checkOnResume = false;
     let timer: number | null = null;
 
     const schedule = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
       if (!stopped && shouldPollCurrentReadings(document.hidden)) {
         timer = window.setTimeout(poll, REALTIME_POLL_INTERVAL_MS);
       }
     };
     const poll = async () => {
-      if (stopped || document.hidden || liveInFlight.current) return;
-      liveInFlight.current = true;
+      if (stopped || document.hidden || inFlight) return;
+      inFlight = true;
+      checkOnResume = false;
       const since = liveCursor.current ?? Date.now() - REALTIME_INITIAL_LOOKBACK_MS;
       try {
         const body = await session.request<{ data: LiveData }>(`/api/history/live?since_ms=${since}`);
         if (stopped) return;
-        liveCursor.current = nextCursor(since, body.data.through_ms);
+        liveCursor.current = nextCursor(liveCursor.current ?? since, body.data.through_ms);
         setCurrentLatest(previous => mergeLatest(previous, body.data.latest));
         setCurrentHealth(body.data.health);
-        setHistory(previous => previous && shouldAppendToHistorian(periodRef.current, Date.now()) ? {
-          ...previous,
-          series: mergePointSeries(previous.series, body.data.points),
-          latest: mergeLatest(previous.latest, body.data.latest),
-          latest_observed_at: Object.values(mergeLatest(previous.latest, body.data.latest))
-            .reduce<number | null>((latest, point) => point?.t ? Math.max(latest ?? 0, Number(point.t)) : latest, null)
-            ? new Date(Object.values(mergeLatest(previous.latest, body.data.latest))
-              .reduce<number>((latest, point) => Math.max(latest, Number(point?.t || 0)), 0)).toISOString()
-            : previous.latest_observed_at,
-          last_source_timestamp: liveCursor.current,
-          telemetry_health: body.data.health,
-          checked_at: body.data.checked_at
-        } : previous);
+        const selected = periodRef.current;
+        if (shouldAppendToHistorian(selected, Date.now())) {
+          const packet = liveWithinRange(body.data, selected.startMs, selected.endMs);
+          const journal = pendingLive.current;
+          if (journal && journal.ticket === generation.current) {
+            journal.packet = journal.packet ? {
+              ...packet,
+              through_ms: nextCursor(journal.packet.through_ms, packet.through_ms),
+              points: mergePointSeries(journal.packet.points, packet.points),
+              latest: mergeLatest(journal.packet.latest, packet.latest)
+            } : packet;
+          }
+          setHistory(previous => previous ? appendLiveHistory(previous, packet) : previous);
+        }
         setStatus(body.data.sample_count ? t("status.liveUpdated") : t("status.liveChecked"));
       } catch (reason) {
+        if (stopped) return;
         const apiError = reason as Error & { status?: number; code?: string };
-        if (apiError.status === 401) session.showLogin(apiError.message);
+        if (apiError.status === 401) {
+          stopData();
+          setBusy(false);
+          session.showLogin(apiError.message);
+        }
         else if (apiError.code === "LIVE_CATCHUP_TOO_LONG") {
           liveCursor.current = Date.now() - REALTIME_INITIAL_LOOKBACK_MS;
           setStatus(t("status.liveResync"));
         }
         else setError(apiError.message);
       } finally {
-        liveInFlight.current = false;
-        schedule();
+        inFlight = false;
+        if (!stopped && checkOnResume && !document.hidden) void poll();
+        else schedule();
       }
     };
     const visibilityChanged = () => {
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
-      if (!document.hidden) poll();
-      else setStatus(t("status.paused"));
+      if (!document.hidden) {
+        if (inFlight) checkOnResume = true;
+        else void poll();
+      } else setStatus(t("status.paused"));
     };
+    const stop = () => {
+      stopped = true;
+      if (timer !== null) window.clearTimeout(timer);
+      timer = null;
+      document.removeEventListener("visibilitychange", visibilityChanged);
+    };
+    stopLive.current = stop;
     document.addEventListener("visibilitychange", visibilityChanged);
     if (document.hidden) setStatus(t("status.paused"));
     else poll();
-    return () => {
-      stopped = true;
-      if (timer !== null) window.clearTimeout(timer);
-      document.removeEventListener("visibilitychange", visibilityChanged);
-    };
-  }, [session.phase, session.request, session.showLogin]);
+    return stop;
+  }, [session.phase, session.request, session.showLogin, stopData]);
 
   const changePeriod = useCallback((next: Period) => {
     generation.current += 1;
+    pendingLive.current = null;
+    periodRef.current = next;
     setPeriod(next);
     setHistory(null);
     setSyncCommand(null);
     setRestoreVersion(value => value + 1);
   }, []);
+
+  useEffect(() => {
+    const pop = () => changePeriod(UI.periodFromUrl());
+    window.addEventListener("popstate", pop);
+    return () => window.removeEventListener("popstate", pop);
+  }, [changePeriod]);
 
   const setMetricVisible = useCallback((metric: string, visible: boolean) => {
     setVisibility(previous => {
@@ -187,7 +229,7 @@ function Overview() {
 
   return <main>
     <PageState phase={session.phase} message={session.message} onLogin={session.login}>
-      <Header page="overview" period={period} onLogout={() => session.logout()} />
+      <Header page="overview" period={period} onLogout={() => { stopData(); session.logout(); }} />
       <section>
         {!!(error || history?.warnings?.length) && <div className="banner" role="status">
           {[error, ...(history?.warnings ?? [])].filter(Boolean).join("\n")}

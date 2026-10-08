@@ -18,19 +18,19 @@ Canonical frontend source 是 [source/frontend-react/](../source/frontend-react/
 
 | Source | 当前 ownership |
 | --- | --- |
-| [overview.tsx](../source/frontend-react/src/overview.tsx) | Overview composition、selected period/history、独立 realtime polling/cursor、metric visibility 与跨 chart sync/restore commands |
-| [daily.tsx](../source/frontend-react/src/daily.tsx) | Daily Analytics composition、selected period、summary request 与页面刷新调度 |
+| [overview.tsx](../source/frontend-react/src/overview.tsx) | Overview composition、selected period/history 的请求有效性与 pending-live handoff、独立 realtime polling/cursor、metric visibility 与跨 chart sync/restore commands |
+| [daily.tsx](../source/frontend-react/src/daily.tsx) | Daily Analytics composition、selected period、summary request 有效性、completion-based 约 60 秒刷新与 visibility/teardown |
 | [useSession.ts](../source/frontend-react/src/useSession.ts) | Session phase、login/logout、human activity、idle 与跨标签通知；维护 request controllers 并在退出或卸载时取消请求 |
 | [api.ts](../source/frontend-react/src/api.ts) | 正式 React frontend 的 JSON HTTP transport、request timeout 与 error metadata/localization；使用 session 提供的 controller 集合，不拥有 polling 或 session phase |
 | [HistorianChart.tsx](../source/frontend-react/src/components/HistorianChart.tsx) / [historianOptions.ts](../source/frontend-react/src/components/historianOptions.ts) / [zoom.ts](../source/frontend-react/src/zoom.ts) | Component 持有 ECharts instance/lifecycle、gesture/tooltip/selection、local zoom、Sync dirty-state 与 toolbar coordination；`historianOptions.ts` 是纯 options builder，接收显式 label/time formatter，并持有共享 palette/grid；`zoom.ts` 提供 zoom/gesture 计算 helpers |
 | [CurrentReadings.tsx](../source/frontend-react/src/components/CurrentReadings.tsx) / [energyFlow.ts](../source/frontend-react/src/energyFlow.ts) | Reading cards、freshness 展示与显示时钟；energy-flow presentation helpers |
-| [data.ts](../source/frontend-react/src/data.ts) / [live.ts](../source/frontend-react/src/live.ts) / [config.ts](../source/frontend-react/src/config.ts) | Series/latest merge 与 age formatting；live policy helpers；frontend configuration/constants。Polling 调度仍在页面 |
+| [data.ts](../source/frontend-react/src/data.ts) / [live.ts](../source/frontend-react/src/live.ts) / [config.ts](../source/frontend-react/src/config.ts) | Series/latest merge、限定 range 的 snapshot/live merge 与 age formatting；live policy helpers；frontend configuration/constants。Polling 调度仍在页面 |
 | [types.ts](../source/frontend-react/src/types.ts) | Frontend 使用的 API response 与 UI state 类型；server response 由 Python Web/API code 构造 |
 
 ### Active compatibility code 与历史 frontend
 
 - [public/shared.js](../source/frontend-react/public/shared.js) **仍是正式 frontend 的运行依赖**：提供 `window.HomeEnergyUI`，拥有 translations/language、date/period/URL helpers、storage helpers、SOC presentation 与 imperative period picker。`api.ts` 使用它的 `t`、`hasTranslation` 与当前 language，不复制 dictionary。
-- [ui.ts](../source/frontend-react/src/ui.ts) 接入该 global 并提供 React language subscription；[global.d.ts](../source/frontend-react/src/global.d.ts) 描述它的 TypeScript 接口；[PeriodNavigator.tsx](../source/frontend-react/src/components/PeriodNavigator.tsx) 接入 imperative picker。两份 HTML 在 React module 之前加载 `/shared.js`。`public/shared.css` 也是 active styling source。
+- [ui.ts](../source/frontend-react/src/ui.ts) 接入该 global 并提供 React language subscription；[global.d.ts](../source/frontend-react/src/global.d.ts) 描述它的 TypeScript 接口；[PeriodNavigator.tsx](../source/frontend-react/src/components/PeriodNavigator.tsx) 接入 imperative picker，并在卸载时调用其幂等 `destroy()` 清理自身监听、关闭动画 timer 与滚动锁。两份 HTML 在 React module 之前加载 `/shared.js`。`public/shared.css` 也是 active styling source。
 - `source/` 根目录的 `index.html`、`app.js`、`daily.html`、`daily.js`、`shared.js`、`shared.css` 是旧 frontend implementation，仍供 source-root static fallback 与部分 backend compatibility tests 使用；canonical React build / artifact builder 不取这些文件。
 - [legacy-frontend-v0.5.0/](../source/legacy-frontend-v0.5.0/) 是历史实现存档，不是 React entry 或 canonical build input。不要将它与 active `frontend-react/public/` 混为一谈。
 

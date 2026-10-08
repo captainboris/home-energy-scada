@@ -11,6 +11,11 @@
 
 ### 修正
 
+- Daily/Overview 为 period、请求 owner、session 与卸载建立有效性边界，过期成功/失败/finally 不再写页面或触发登录；live in-flight 状态限定在当前 polling owner，避免旧会话阻塞新会话。
+- Daily summary 改为请求完成后约 60 秒续排，手动刷新替换 timer，hidden 暂停、visible 合并立即检查，不重叠 polling。
+- Overview 保留 snapshot 加载期间同一 range 内的真实 live 点；按 timestamp 去重、live overlap 优先，不复活任意旧 history，并防止 late live response 回退 cursor。
+- Active compatibility picker 增加幂等 `destroy()`，React 卸载清理自身监听、关闭 timer 和滚动锁，避免 detached focus；交互设计不变。
+
 - 明确 Password Login 后进入 Overview → Day → Today，不再继承上次停留的 Week/Month query 作为登录初始视图。
 - Current Readings freshness age 继续使用每个 Reading fragment 的 source timestamp，并只在 age 超过 2 分钟时显示 TTL；age-based stale threshold 同步为 2 分钟。
 - Historian 移除 `emphasis.focus=series`，Desktop Hover 与 Mobile Tooltip 不再 dim 其他 metrics 或改变 series 视觉权重。

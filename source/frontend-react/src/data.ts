@@ -1,4 +1,35 @@
-import type { Point, Reading, SeriesRow } from "./types";
+import type { HistoryData, LiveData, Point, Reading, SeriesRow } from "./types";
+
+// Live packets belong only to the selected absolute range; the live cursor is
+// separate and may extend beyond that range. Never pull old chart history in.
+export function liveWithinRange(live: LiveData, start: number, end: number): LiveData {
+  const includes = (timestamp: number) => timestamp >= start && timestamp < end;
+  return {
+    ...live,
+    points: live.points.map(row => ({ ...row, points: row.points.filter(([t]) => includes(t)) })),
+    latest: Object.fromEntries(Object.entries(live.latest).filter(([, point]) => includes(point.t)))
+  };
+}
+
+export function appendLiveHistory(history: HistoryData, packet: LiveData): HistoryData {
+  const live = liveWithinRange(packet, history.range.start_ms, history.range.end_ms);
+  const latest = mergeLatest(history.latest, live.latest);
+  const sourceTimestamp = latestSeriesTimestamp(live.points);
+  const sourceTimes = [history.last_source_timestamp, sourceTimestamp, ...Object.values(live.latest).map(point => point.t)]
+    .filter((timestamp): timestamp is number => timestamp != null);
+  const lastSource = sourceTimes.length ? Math.max(...sourceTimes) : history.last_source_timestamp;
+  const observedTimes = Object.values(latest).map(point => point.t);
+  const observed = observedTimes.length ? Math.max(...observedTimes) : null;
+  return {
+    ...history,
+    series: mergePointSeries(history.series, live.points),
+    latest,
+    latest_observed_at: observed != null ? new Date(observed).toISOString() : history.latest_observed_at,
+    last_source_timestamp: lastSource,
+    telemetry_health: live.health,
+    checked_at: live.checked_at
+  };
+}
 
 export function mergePointSeries(base: SeriesRow[], incoming: SeriesRow[]): SeriesRow[] {
   const rows = new Map<string, SeriesRow>();

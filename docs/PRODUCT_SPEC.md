@@ -63,6 +63,8 @@ SOC colour thresholds 沿用：`<30% critical`、`30–49% warning`、`50–79% 
 
 Current Readings 永远消费 `/api/history/live` 返回的 `latest`。只有 selected period 包含 current time 时，Historian 才消费 incremental `points`；完全 historical view 不追加 current points。Live update 必须保留每张 Chart 的 local zoom viewport。
 
+History snapshot 返回时保留同一 period 加载期间已接受的真实 live 点；范围、重叠优先级与水位见 `DATA_SEMANTICS.md`。Period/session/request owner 失效或卸载后，旧请求的成功、失败与 finally 不得更新页面或触发登录；当前 session 的 401 仍进入现有登录处理。
+
 ## 6. Chart interaction
 
 - Desktop：Hover Tooltip、horizontal Drag-select Zoom、cursor-anchored Wheel X-axis Zoom；无 Drag-to-Pan。Hover real point/series 不得改变其他 metrics 的 opacity，也不得产生 line-width/focus 强调效果。
@@ -84,6 +86,8 @@ Storage 与 API 保持 missing samples absent；Frontend 只连接真实 sample�
 ## 9. Daily Analytics
 
 PV Generation、Home Consumption、Grid Import、Grid Export、Battery Charge、Battery Discharge 的 Energy totals 继续以 FoxESS official report/API 为 authoritative source。不得改成 5-second numerical integration；current-day official report 尚未产生时可显示 unavailable。
+
+Daily 页面可见且 session active 时，summary 请求完成后约 60 秒继续刷新（成功或普通失败均续排），不并发、不重复安排 timer。手动刷新替换待执行 timer；hidden 时暂停新 polling，visible 时立即检查，已有请求未完成则合并为完成后一次检查。Period/session 切换或卸载结束旧 owner 的活动，不改变 summary 数据语义，也不把 polling 计为 human activity。
 
 ## 10. Energy Peaks
 
