@@ -28,6 +28,7 @@ mkdir -p "$artifact_root" "$release_tmp/web" "$release_tmp/frontend"
 
 web_files=(
   lambda_function.py
+  range_analytics.py
   history_service.py
   telemetry_storage.py
   analytics.py

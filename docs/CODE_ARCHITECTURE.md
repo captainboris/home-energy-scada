@@ -38,7 +38,8 @@ Canonical frontend source 是 [source/frontend-react/](../source/frontend-react/
 
 | Source | 当前 ownership |
 | --- | --- |
-| [lambda_function.py](../source/lambda_function.py) | Web/API handler、dispatch、auth/session、request/response/logging、static serving；目前也持有 daily/range analytics 的 Web orchestration |
+| [lambda_function.py](../source/lambda_function.py) | Web/API handler、dispatch、auth/session、request/response/logging、static serving、daily summary；range endpoint 只解析窗口/安装配置并封装 HTTP response |
+| [range_analytics.py](../source/range_analytics.py) | Web/API 专属 range business orchestration：安装日期适用性、官方报告完整性、两源真实 peaks、warnings、coverage/battery 与业务 payload；接收 window、now、legacy store、安装日期及 lazy Fast store factory，不反向导入 Lambda |
 | [history_service.py](../source/history_service.py) | Unified historian read model：source selection、resolution policy 与两段 response 合并 |
 | [telemetry_storage.py](../source/telemetry_storage.py) | Web/API 的 Fast Telemetry read adapter、raw/rollup display data、live incremental reads、health 与 peaks；不负责 ingestion writes |
 | [analytics.py](../source/analytics.py) / [common.py](../source/common.py) | REST Collector 与 Web/API 共用的 daily analytics/report helpers，以及 metric/unit definitions、timezone/time parsing、AppError 等基础代码 |
@@ -47,7 +48,11 @@ Canonical frontend source 是 [source/frontend-react/](../source/frontend-react/
 | [lightsail-collector/app/](../source/lightsail-collector/app/) | 独立 WebSocket ingestion implementation：service、auth/socket、parser/model、dedupe、raw/rollup writer 与 health；入口是 `app.main` |
 
 现有依赖方向：frontend 经 Web/API 读取数据；Web/API 组合 historian read modules，
-不导入 REST Collector 或 Lightsail `app`。REST Collector 使用 `analytics.py`、
+不导入 REST Collector 或 Lightsail `app`。`lambda_function.py` 调用
+`range_analytics.py`；该模块使用既有 `analytics.py`、historian boundary 与
+Fast read adapter，返回业务数据，`checked_at` 仍读取计算完成时的时钟。
+安装日期解析仍供 daily/range 共用；range 专用 day-start/peak helpers 在新模块。
+REST Collector 使用 `analytics.py`、
 `common.py`、`storage.py`；这些共用模块不依赖 Web entrypoint 或 Fast Telemetry read adapter。
 Frontend 的 transport 在 `src/api.ts`，页面的 scheduling 在 React code，
 session-related request cancellation 在 `useSession.ts`。Transport 每次注册独立 controller，
@@ -59,7 +64,7 @@ session 负责退出/卸载时取消整个集合，401 后的 session phase 由�
 - React 是 multi-page build：[index.html](../source/frontend-react/index.html) → `src/overview.tsx`；[daily.html](../source/frontend-react/daily.html) → `src/daily.tsx`。
 - 在 `source/frontend-react/` 执行 `npm run build`，经 [package.json](../source/frontend-react/package.json) 的 TypeScript/build steps 与 [vite.config.ts](../source/frontend-react/vite.config.ts) 生成 `dist/`：两份 HTML、从 `public/` 复制的 shared assets、hashed `assets/`。`dist/` 是 generated output，不提交 Git。
 - Web deployment handler 是 `index.web`。Canonical builder 将 [web_index.py](../source/web_index.py) 复制为 ZIP root 的 `index.py`，其 `web()` 调用 `lambda_function.lambda_handler`。[source/index.py](../source/index.py) 同时保留 `web` / `collect` wrappers；它不是 canonical Web ZIP 的 `index.py` 来源。
-- Canonical current artifact builder 是 [build-current-artifacts.sh](../source/scripts/build-current-artifacts.sh)，输入已构建的 React `dist/` 和脚本中显式列出的 Web Python modules；它不执行 frontend build，也不部署。当前输出位于 `artifacts/v0.6.2/`。
+- Canonical current artifact builder 是 [build-current-artifacts.sh](../source/scripts/build-current-artifacts.sh)，输入已构建的 React `dist/` 和脚本中显式列出的 Web Python modules；它不执行 frontend build，也不部署。当前输出位于 `artifacts/v0.6.2/`。新 Web module 必须同步当前 builder（及 full-delivery builder）的显式 module list。
 
 | Artifact | 内容 / 使用边界 |
 | --- | --- |
@@ -80,4 +85,4 @@ checksum 的完整交付工作流，依赖已取得的历史 ZIP；clean-clone c
 
 - Frontend unit/DOM tests：`source/frontend-react/src/*.test.ts(x)`；browser smoke：`source/frontend-react/tests/browser-smoke.cjs`。
 - Backend/API/history/static tests：`tests/`；Lightsail tests：`source/lightsail-collector/tests/`。
-- [CI](../.github/workflows/ci.yml) 执行 frontend tests/build 后运行 Python suites；built static tests 依赖先生成 `dist/`。Browser smoke 与 artifact builder 当前不在 CI steps 中。
+- [CI](../.github/workflows/ci.yml) 执行 frontend tests/build 后运行 Python suites；built static/artifact tests 依赖先生成 `dist/`。`tests/test_web_artifact.py` 执行 canonical builder、检查最终 ZIP/资源闭包，并在独立 Python `-I` 进程仅加入解压 Web ZIP 路径验证 `index.web`；CI 的 Python suite 包含此检查。Browser smoke 不在 CI steps 中。

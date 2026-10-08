@@ -77,3 +77,16 @@
 | 真实手机纵向滚动、Safari/iOS、实际 background-tab throttling、生产 API/deployment | 本环境未执行；在目标浏览器/设备及部署 smoke 复验 R07、R17–R27、R30、R43 与上述生命周期项 | NOT TESTED |
 
 Browser 使用真实 headless Chromium，但 API、clock 与 visibility 可控模拟；mobile 使用合成 pointer events。不得据此标记真实设备或生产部署 PASS。
+
+
+## PR5 range analytics extraction validation — 2026-10-08
+
+本次不改变 behaviour contract；R31–R34、R36–R38、R40 保持原有测试通过，R41–R42 以实际 current ZIP 和 hygiene/secret 检查复验。
+
+| Check | Evidence | Result |
+| --- | --- | --- |
+| 安装日期、today partial、official report missing、null/zero、两源真实 peaks、Fast 不可用、23h/25h DST、completion-time checked_at | 16 range contract tests + 原有 backend suite；提取前后完整成功 response 比较 | PASS |
+| HTTP envelope 与业务结果；daily/auth/request parsing unchanged | direct business/HTTP parity + 原有 tests + AST comparison | PASS |
+| Actual Web ZIP import closure、index.web 及 missing-module negative control | 独立 Python -I，无 repo source/PYTHONPATH；boto3 IO 禁止 | PASS |
+| Frontend resource closure、Web/Layer boundary | actual canonical artifact tests | PASS |
+| Production AWS/FoxESS、browser/device、deployment | 未执行；前端无变化，沿用目标环境 deploy smoke | NOT TESTED |

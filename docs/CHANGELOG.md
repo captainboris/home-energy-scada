@@ -6,6 +6,8 @@
 
 ### 重构
 
+- Range analytics 的业务编排与 range 专用 helpers 从 `lambda_function.py` 提取到 Web/API 专属 `range_analytics.py`；HTTP 层保留鉴权、窗口/安装配置解析及响应封装，Collector 共用 `analytics.py` 不变。保持 API、查询边界、官方 report/安装日期/两源 peaks/warnings 与 completion-time `checked_at` 行为；同步当前 Web 打包清单并增加实际 ZIP 独立导入和资源闭包验证。部署仅更新 Web 后端代码，可沿用当前 frontend Layer；回滚恢复前一个 Web 包。
+
 - HistorianChart 提取纯 ECharts options builder，显式传入 metric label 与 timestamp formatter；交互、local zoom、Sync/Restore、toolbar 与 instance cleanup 继续由组件拥有。补充 options/lifecycle 测试并修正本地 mock browser smoke 的 selector 与时钟 fixture，不改变图表产品行为。
 - 正式 React frontend 的 HTTP transport 从 `public/shared.js` 提取至 `src/api.ts`；保留请求选项、错误翻译、401 与取消契约。Session cancellation 仍由 `useSession` 管理，查询与 polling 调度仍在页面。
 
