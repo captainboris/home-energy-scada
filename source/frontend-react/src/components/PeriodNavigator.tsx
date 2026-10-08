@@ -11,7 +11,12 @@ export const PeriodNavigator = memo(function PeriodNavigator({ period, onChange 
   callback.current = onChange;
 
   useEffect(() => {
-    navigator.current = new window.HomeEnergyUI.PeriodNavigator(period, next => callback.current(next));
+    const instance = new window.HomeEnergyUI.PeriodNavigator(period, next => callback.current(next));
+    navigator.current = instance;
+    return () => {
+      instance.destroy();
+      navigator.current = null;
+    };
   }, []); // Imperative compatibility island is created once per page.
 
   useEffect(() => navigator.current?.setCurrent(period), [period]);

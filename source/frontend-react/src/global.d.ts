@@ -24,6 +24,7 @@ interface HomeEnergyUI {
   writePeriodUrl(period: Period, replace?: boolean): void;
   PeriodNavigator: new (period: Period, onApply: (period: Period) => void) => {
     setCurrent(period: Period): void;
+    destroy(): void;
   };
 }
 

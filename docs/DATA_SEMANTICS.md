@@ -64,3 +64,11 @@ Home Load Peak 对应 `load_power_kw`。Browser 不从 downsampled Chart series 
 ## Freshness
 
 `Updated Xs ago` 以 Reading 的 source timestamp 计算。HTTP request completion、Browser receive time 或 last poll time 都不是 freshness source。
+
+## Frontend snapshot / live handoff
+
+- Current Readings 只接受有效 live response 的 `latest`；history snapshot 不写入实时卡片。
+- 只有包含 now 的 selected period 接受 Historian live append，点和 latest 按绝对 source timestamp 限定到 `[start_ms, end_ms)`。
+- 页面只记录当前 snapshot 加载窗口内已接受的 live packet；同一 owner 内替换请求可交接该 buffer。Period/session/request owner 切换或卸载清空 buffer，当前请求成功/失败后结束记录；不把任意旧 history 合回 snapshot。
+- 合并按 metric + absolute timestamp 去重并排序，已接受的 live 值覆盖 snapshot 同 timestamp 值，后接受的 live packet 优先；真实的 zero/null 保留，不补点、不插值。
+- Live `through_ms` 是独立增量读取水位，除既有 `LIVE_CATCHUP_TOO_LONG` resync 外单调不减；period change 不重置它。晚到 snapshot 的 `last_source_timestamp` 可推进 cursor，但不得作为过滤已接受 live 点的下界。Historian metadata 保留 snapshot 与范围内 live 的最大真实 source timestamp，完整 selected range 不变。

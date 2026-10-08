@@ -224,9 +224,10 @@ async function mockApi(page) {
   if (!(await daily.locator("body").innerText()).includes("Home Load Peak")) throw new Error("Home Load Peak did not render");
   await daily.screenshot({ path: path.join(output, "daily-desktop.png"), fullPage: true });
 
+  await require("./page-lifecycle-smoke.cjs")({ browser, mockApi, fixtureNow });
   await browser.close();
   if (errors.length) throw new Error(errors.join("\n"));
-  console.log(JSON.stringify({ ok: true, charts: 4, desktop: true, mobile: true, daily: true }));
+  console.log(JSON.stringify({ ok: true, charts: 4, desktop: true, mobile: true, daily: true, pageLifecycle: true }));
 })().catch(error => {
   console.error(error.stack || error.message);
   process.exit(1);

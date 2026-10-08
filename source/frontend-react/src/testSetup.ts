@@ -56,7 +56,7 @@ window.HomeEnergyUI = {
   }),
   periodQuery: () => ({}),
   writePeriodUrl: () => undefined,
-  PeriodNavigator: class { setCurrent() {} } as unknown as Window["HomeEnergyUI"]["PeriodNavigator"]
+  PeriodNavigator: class { setCurrent() {} destroy() {} } as unknown as Window["HomeEnergyUI"]["PeriodNavigator"]
 };
 
 afterEach(() => cleanup());

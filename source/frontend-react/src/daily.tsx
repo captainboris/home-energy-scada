@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { DailyData, Period } from "./types";
 import { UI, t, useLanguage } from "./ui";
@@ -26,46 +26,79 @@ function Daily() {
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
 
-  const load = useCallback(async (manual = false) => {
-    if (session.phase !== "app") return;
-    setBusy(true);
-    setError("");
-    setStatus(t("status.readingAnalytics"));
-    try {
-      const params = new URLSearchParams(UI.periodQuery(period));
-      const body = await session.request<{ data: DailyData }>(`/api/summary/range?${params}`);
-      setData(body.data);
-      setStatus(manual ? t("status.reloadedAnalytics") : t("status.checkedAnalytics"));
-    } catch (reason) {
-      const apiError = reason as Error & { status?: number };
-      if (apiError.status === 401) session.showLogin(apiError.message);
-      else {
-        setError(apiError.message);
-        setStatus(t("status.failed"));
-      }
-    } finally {
-      setBusy(false);
-    }
-  }, [period, session.phase, session.request, session.showLogin]);
+  const loadRef = useRef<(manual?: boolean) => void>(() => undefined);
+  const stopRef = useRef<() => void>(() => undefined);
+  const load = useCallback((manual = false) => loadRef.current(manual), []);
 
-  useEffect(() => { load(false); }, [load]);
+  // One period/session owner controls requests and completion-based polling.
   useEffect(() => {
     if (session.phase !== "app") return;
+    let active = true;
+    let inFlight = false;
+    let checkOnResume = false;
     let timer: number | null = null;
-    const schedule = () => {
+    const clearTimer = () => {
       if (timer !== null) window.clearTimeout(timer);
-      if (!document.hidden) timer = window.setTimeout(() => load(false), 60000);
+      timer = null;
     };
-    const visible = () => document.hidden ? setStatus(t("status.paused")) : load(false);
-    schedule();
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      if (timer !== null) window.clearTimeout(timer);
+    const read = async (manual = false) => {
+      if (!active || inFlight || document.hidden) return;
+      clearTimer();
+      inFlight = true;
+      checkOnResume = false;
+      setBusy(true);
+      setError("");
+      setStatus(t("status.readingAnalytics"));
+      try {
+        const params = new URLSearchParams(UI.periodQuery(period));
+        const body = await session.request<{ data: DailyData }>(`/api/summary/range?${params}`);
+        if (!active) return;
+        setData(body.data);
+        setStatus(document.hidden ? t("status.paused")
+          : manual ? t("status.reloadedAnalytics") : t("status.checkedAnalytics"));
+      } catch (reason) {
+        if (!active) return;
+        const apiError = reason as Error & { status?: number };
+        if (apiError.status === 401) {
+          stop();
+          setBusy(false);
+          session.showLogin(apiError.message);
+        } else {
+          setError(apiError.message);
+          setStatus(document.hidden ? t("status.paused") : t("status.failed"));
+        }
+      } finally {
+        inFlight = false;
+        if (active) {
+          setBusy(false);
+          if (!document.hidden) {
+            if (checkOnResume) void read(false);
+            else timer = window.setTimeout(() => void read(false), 60000);
+          }
+        }
+      }
+    };
+    const visible = () => {
+      clearTimer();
+      if (document.hidden) setStatus(t("status.paused"));
+      else if (inFlight) checkOnResume = true;
+      else void read(false);
+    };
+    const stop = () => {
+      active = false;
+      clearTimer();
       document.removeEventListener("visibilitychange", visible);
     };
-  }, [load, session.phase]);
+    stopRef.current = stop;
+    loadRef.current = read;
+    document.addEventListener("visibilitychange", visible);
+    if (document.hidden) { setBusy(false); setStatus(t("status.paused")); }
+    else void read(false);
+    return stop;
+  }, [period, session.phase, session.request, session.showLogin]);
 
   const changePeriod = useCallback((next: Period) => {
+    stopRef.current();
     setPeriod(next);
     setData(null);
   }, []);
@@ -83,7 +116,7 @@ function Daily() {
 
   return <main>
     <PageState phase={session.phase} message={session.message} onLogin={session.login}>
-      <Header page="daily" period={period} onLogout={() => session.logout()} />
+      <Header page="daily" period={period} onLogout={() => { stopRef.current(); session.logout(); }} />
       <section>
         {!!(error || warnings.length) && <div className="banner" role="status">{[error, ...warnings].filter(Boolean).join("\n")}</div>}
         <div className="toolbar">
