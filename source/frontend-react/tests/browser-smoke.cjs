@@ -2,9 +2,11 @@ const { chromium } = require("playwright");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const output = path.resolve(__dirname, "../../../qa");
+const output = process.env.SCADA_SMOKE_OUTPUT || path.resolve(__dirname, "../../../qa");
 fs.mkdirSync(output, { recursive: true });
 const start = Date.parse("2026-10-01T00:00:00+10:00");
+const fixtureNow = start + 8 * 60000;
+let liveRequests = 0;
 const metrics = [
   "pv_power_kw", "load_power_kw", "grid_import_power_kw",
   "grid_export_power_kw", "battery_charge_power_kw",
@@ -23,7 +25,7 @@ function json(route, body) {
 
 async function mockApi(page) {
   await page.route("**/api/session", route => json(route, {
-    ok: true, last_activity: Math.floor(Date.now() / 1000), idle_deadline: Math.floor(Date.now() / 1000) + 1800, idle_seconds: 1800
+    ok: true, last_activity: Math.floor(fixtureNow / 1000), idle_deadline: Math.floor(fixtureNow / 1000) + 1800, idle_seconds: 1800
   }));
   await page.route("**/api/activity", route => json(route, { ok: true }));
   await page.route("**/api/history/unified?*", route => json(route, { data: {
@@ -42,6 +44,7 @@ async function mockApi(page) {
     checked_at: new Date().toISOString()
   }}));
   await page.route("**/api/history/live?*", route => {
+    liveRequests += 1;
     liveStamp += 5000;
     const live = metrics.map((metric, metricIndex) => ({ metric, unit: units[metric], points: [[liveStamp,
       metric.endsWith("pct") ? 81 : Math.max(0, 1.5 + metricIndex * .1)]] }));
@@ -71,6 +74,7 @@ async function mockApi(page) {
   const errors = [];
   const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1 });
   const page = await desktop.newPage();
+  await page.clock.setFixedTime(new Date(fixtureNow));
   page.on("console", message => { if (message.type() === "error") errors.push(`console: ${message.text()}`); });
   page.on("pageerror", error => errors.push(`page: ${error.message}`));
   page.on("requestfailed", request => errors.push(`request: ${request.url()} ${request.failure()?.errorText}`));
@@ -90,7 +94,7 @@ async function mockApi(page) {
     throw new Error("Historian base axis is not the complete selected local day");
   }
   if (await page.getByRole("button", { name: /同步|Sync/ }).count() !== 0
-    || await page.getByRole("button", { name: /复原|Restore/ }).count() !== 0) {
+    || await page.getByRole("button", { name: /复原|恢复|Restore/ }).count() !== 0) {
     throw new Error("Zoom toolbar must be hidden at the base viewport");
   }
   const firstChartBox = await page.locator(".echart").first().boundingBox();
@@ -98,20 +102,35 @@ async function mockApi(page) {
   const plotLeft = firstChartBox.x + 58;
   const plotWidth = firstChartBox.width - 58 - 18;
   const plotY = firstChartBox.y + 120;
+  await page.mouse.move(plotLeft + 1, plotY);
+  await page.waitForFunction(() => {
+    const tooltip = document.querySelector("[data-chart-id='solar-load'] .historian-tooltip");
+    return tooltip instanceof HTMLElement && tooltip.offsetWidth > 0 && tooltip.textContent.includes("kW");
+  });
   await page.mouse.move(plotLeft + plotWidth * .75, plotY);
   await page.mouse.down();
   await page.mouse.move(plotLeft + plotWidth * (20 / 24), plotY, { steps: 8 });
+  if (await firstCard.locator(".zoom-selection").isHidden()
+    || await firstCard.locator(".historian-tooltip:visible").count()) {
+    throw new Error("Desktop Drag-select must suppress Hover Tooltip and show selection overlay");
+  }
   await page.mouse.up();
   await page.waitForFunction(() => document.querySelector("[data-chart-id='solar-load']")?.getAttribute("data-zoomed") === "true");
   if (await page.getByRole("button", { name: /同步|Sync/ }).count() !== 1
-    || await page.getByRole("button", { name: /复原|Restore/ }).count() !== 1) {
+    || await page.getByRole("button", { name: /复原|恢复|Restore/ }).count() !== 1) {
     throw new Error("Local drag zoom did not expose Sync and Restore");
+  }
+  const liveBeforeZoom = liveRequests;
+  await page.waitForTimeout(5200);
+  if (liveRequests <= liveBeforeZoom || await firstCard.getAttribute("data-zoomed") !== "true"
+    || await firstCard.getAttribute("data-sync-dirty") !== "true") {
+    throw new Error("Live update must continue without resetting local zoom");
   }
   await page.getByRole("button", { name: /同步|Sync/ }).first().click();
   await page.waitForFunction(() => [...document.querySelectorAll(".chart-card[data-chart-id]")]
     .every(card => card.getAttribute("data-zoomed") === "true" && card.getAttribute("data-sync-dirty") === "false"));
   if (await page.getByRole("button", { name: /同步|Sync/ }).count() !== 0
-    || await page.getByRole("button", { name: /复原|Restore/ }).count() !== 4) {
+    || await page.getByRole("button", { name: /复原|恢复|Restore/ }).count() !== 4) {
     throw new Error("Synchronized toolbar state is incorrect");
   }
   await page.locator(".echart").nth(1).hover();
@@ -120,18 +139,19 @@ async function mockApi(page) {
   if (await page.getByRole("button", { name: /同步|Sync/ }).count() !== 1) {
     throw new Error("A local wheel zoom after Sync must make only that chart dirty");
   }
-  await page.getByRole("button", { name: /复原|Restore/ }).first().click();
+  await page.getByRole("button", { name: /复原|恢复|Restore/ }).first().click();
   await page.waitForFunction(() => [...document.querySelectorAll(".chart-card[data-chart-id]")]
     .every(card => card.getAttribute("data-zoomed") === "false"));
   if (await page.getByRole("button", { name: /同步|Sync/ }).count() !== 0
-    || await page.getByRole("button", { name: /复原|Restore/ }).count() !== 0) {
+    || await page.getByRole("button", { name: /复原|恢复|Restore/ }).count() !== 0) {
     throw new Error("Global Restore did not hide every zoom action");
   }
   await page.waitForTimeout(5200);
   await page.screenshot({ path: path.join(output, "overview-desktop.png"), fullPage: true });
 
-  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+  const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const mobilePage = await mobile.newPage();
+  await mobilePage.clock.setFixedTime(new Date(fixtureNow));
   mobilePage.on("pageerror", error => errors.push(`mobile page: ${error.message}`));
   await mockApi(mobilePage);
   await mobilePage.goto("http://127.0.0.1:4173/?view=day&date=2026-10-01", { waitUntil: "networkidle" });
@@ -167,7 +187,12 @@ async function mockApi(page) {
     const tooltip = document.querySelector(".historian-tooltip");
     return tooltip instanceof HTMLElement && tooltip.offsetWidth > 0 && tooltip.offsetHeight > 0;
   });
-  const tooltipBox = await mobilePage.locator(".historian-tooltip").boundingBox();
+  const tooltip = mobileChart.locator(".historian-tooltip");
+  const firstTooltipText = await tooltip.innerText();
+  await touch("pointerdown", 1, mobileLeft + .2, mobileY);
+  await touch("pointerup", 1, mobileLeft + .2, mobileY);
+  if (await tooltip.innerText() === firstTooltipText) throw new Error("Tap another real point must update Tooltip");
+  const tooltipBox = await tooltip.boundingBox();
   if (!tooltipBox) throw new Error("Tap did not open a real-point Tooltip");
   await touch("pointerdown", 1, tooltipBox.x + tooltipBox.width / 2, tooltipBox.y + tooltipBox.height / 2);
   await touch("pointerup", 1, tooltipBox.x + tooltipBox.width / 2, tooltipBox.y + tooltipBox.height / 2);
@@ -186,10 +211,11 @@ async function mockApi(page) {
   }
   await touch("pointerup", 1, mobileLeft + (mobileRight - mobileLeft) * .75, mobileY + 24);
   await mobilePage.waitForFunction(() => document.querySelector("[data-chart-id='solar-load']")?.getAttribute("data-zoomed") === "true");
-  await mobilePage.getByRole("button", { name: /复原|Restore/ }).first().click();
+  await mobilePage.getByRole("button", { name: /复原|恢复|Restore/ }).first().click();
   await mobilePage.screenshot({ path: path.join(output, "overview-mobile.png"), fullPage: true });
 
   const daily = await desktop.newPage();
+  await daily.clock.setFixedTime(new Date(fixtureNow));
   daily.on("pageerror", error => errors.push(`daily page: ${error.message}`));
   await mockApi(daily);
   await daily.goto("http://127.0.0.1:4173/daily.html?view=day&date=2026-10-01", { waitUntil: "networkidle" });
