@@ -100,7 +100,7 @@ Energy Peaks 包含 PV、Home Load、Grid Import、Grid Export，scope 为 selec
 
 ## 11. Authentication 与 session
 
-访问使用现有 password session。明确完成 Password Login 后，初始 landing 必须是 Overview → Day → Today（URL replace 到当天 Day）；已有有效 session 的普通 deep-link/reload 不强制改写。30 分钟无用户 activity 自动 logout；background polling 不延长 idle session。Logout 不停止后台 ingestion。
+访问复用现有 Session，支持密码 fallback 与可选 Passkey。注册/管理需要管理员独立的一次性许可；共享密码不授予此权限。Passkey 服务端强制用户验证与签名校验，凭据撤销阻止其后续登录及已有 Session 的后续请求。Session 7 天绝对过期；改密码撤销旧 Session，凭据独立撤销。操作与部署边界见 `PASSKEYS.md`。明确完成 Password 或 Passkey Login 后，初始 landing 必须是 Overview → Day → Today（URL replace 到当天 Day）；已有有效 session 的普通 deep-link/reload 不强制改写。30 分钟无用户 activity 自动 logout；background polling 不延长 idle session。Logout 不停止后台 ingestion。
 
 ## 12. Caching 与 responsive behaviour
 

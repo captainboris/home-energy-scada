@@ -28,6 +28,7 @@ mkdir -p "$artifact_root" "$release_tmp/web" "$release_tmp/frontend"
 
 web_files=(
   lambda_function.py
+  passkeys.py
   range_analytics.py
   history_service.py
   telemetry_storage.py
@@ -38,6 +39,7 @@ web_files=(
 for file in "${web_files[@]}"; do
   cp "$source_root/$file" "$release_tmp/web/$file"
 done
+source "$script_dir/package-web-dependencies.sh"
 cp "$source_root/web_index.py" "$release_tmp/web/index.py"
 cp -a "$frontend_dist/." "$release_tmp/frontend/"
 

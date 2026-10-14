@@ -90,3 +90,13 @@ Browser 使用真实 headless Chromium，但 API、clock 与 visibility 可控�
 | Actual Web ZIP import closure、index.web 及 missing-module negative control | 独立 Python -I，无 repo source/PYTHONPATH；boto3 IO 禁止 | PASS |
 | Frontend resource closure、Web/Layer boundary | actual canonical artifact tests | PASS |
 | Production AWS/FoxESS、browser/device、deployment | 未执行；前端无变化，沿用目标环境 deploy smoke | NOT TESTED |
+
+## Passkey increment validation — 2026-10-15 (Australia/Sydney)
+
+R40: same Session idle/absolute rules, activity/logout, credential revocation and password rotation;
+R43: both explicit login methods use Overview/Day/Melbourne Today, while valid-session deep links stay intact.
+Automated protocol fixtures use dynamically generated keys, real signatures and moto; no live AWS/FoxESS.
+Chromium virtual WebAuthn and mock APIs are browser evidence only, not Face ID / Safari hardware evidence.
+Real iPhone Safari, Home Screen, device passcode/cancel/recovery and production URL/IAM/deployment are
+**NOT VERIFIED** and required before production enablement. Existing chart/page smoke remains required.
+Detailed commands/results are in TESTING.md; rollout/recovery are in PASSKEYS.md.

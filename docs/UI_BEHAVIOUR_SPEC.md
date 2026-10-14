@@ -55,7 +55,9 @@ Chart surface 使用 `touch-action: pan-y`：保留 page vertical scroll，不�
 
 ## Login landing
 
-明确 Password Login 成功后进入 `Overview → Day → Today`。Login action 使用 replace navigation，避免把上次停留的 Week/Month query 当作新的登录初始视图；已有有效 session 的正常 deep-link/reload 不受影响。
+明确 Password 或 Passkey Login 成功后进入 `Overview → Day → Today`。Login action 使用 replace navigation，避免把上次停留的 Week/Month query 当作新的登录初始视图；已有有效 session 的正常 deep-link/reload 不受影响。
+
+Passkey 使用准备/继续两步：只有明确点击继续才启动系统验证，取消/不支持时保留密码 fallback。Passkey 管理折叠区要求管理员许可；许可不进入 URL 或持久浏览器存储。
 
 ## Current Readings freshness label
 

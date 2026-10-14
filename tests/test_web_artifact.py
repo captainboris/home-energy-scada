@@ -1,6 +1,8 @@
 """Exercise the actual current builder and its ZIPs, without source-path imports."""
 import json
 import os
+import platform
+import shutil
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
@@ -32,15 +34,19 @@ class WebArtifactTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         subprocess.run(['bash', str(PROJECT / 'source/scripts/build-current-artifacts.sh')],
-                       cwd=PROJECT, check=True, capture_output=True, text=True, timeout=60)
+                       cwd=PROJECT, env={**os.environ, 'WEB_ARCH': 'aarch64' if platform.machine() == 'aarch64' else 'x86_64', 'PYTHON': sys.executable},
+                       check=True, capture_output=True, text=True, timeout=120)
 
     def test_web_zip_contains_exact_application_modules_and_no_frontend_or_collector(self):
         with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.2.zip') as archive:
             self.assertIsNone(archive.testzip())
             names = {name.removeprefix('./') for name in archive.namelist()}
-        self.assertEqual(names, {'index.py', 'lambda_function.py', 'range_analytics.py',
-                               'history_service.py', 'telemetry_storage.py', 'analytics.py',
-                               'common.py', 'storage.py'})
+        self.assertTrue({'index.py', 'lambda_function.py', 'range_analytics.py', 'passkeys.py',
+                         'history_service.py', 'telemetry_storage.py', 'analytics.py',
+                         'common.py', 'storage.py'} <= names)
+        self.assertIn('webauthn/__init__.py', names)
+        self.assertTrue(any(name.endswith('.so') for name in names))
+        self.assertFalse(any(name.startswith(('collector', 'fox_api', 'frontend', 'lightsail')) for name in names))
 
     def test_extracted_web_zip_import_and_entrypoint_call_are_isolated(self):
         # -I ignores PYTHONPATH/user-site/cwd. The only added application path is
@@ -60,16 +66,35 @@ with patch.object(boto3, 'resource', side_effect=AssertionError('Unexpected AWS 
     result = index.web({'rawPath': '/api/health', 'requestContext': {'http': {'method': 'GET'}}}, None)
     assert result['statusCode'] == 200
     assert json.loads(result['body'])['ok'] is True
-    import lambda_function, range_analytics, analytics, common, history_service, storage, telemetry_storage
-    for module in [lambda_function, range_analytics, analytics, common, history_service, storage, telemetry_storage]:
+    import lambda_function, range_analytics, passkeys, analytics, common, history_service, storage, telemetry_storage
+    for module in [lambda_function, range_analytics, passkeys, analytics, common, history_service, storage, telemetry_storage]:
         assert pathlib.Path(module.__file__).resolve().parent == root
     assert 'collector' not in sys.modules and 'fox_api' not in sys.modules
+    import webauthn, cryptography, cbor2
+    for module in [webauthn, cryptography, cbor2]:
+        assert pathlib.Path(module.__file__).resolve().is_relative_to(root)
+    fixture = json.loads((root / 'signature-fixture.json').read_text())
+    from webauthn import verify_authentication_response
+    from webauthn.helpers import base64url_to_bytes
+    checked = verify_authentication_response(credential=fixture['credential'],
+        expected_challenge=base64url_to_bytes(fixture['challenge']), expected_rp_id='energy.test',
+        expected_origin='https://energy.test', credential_public_key=base64url_to_bytes(fixture['public_key']),
+        credential_current_sign_count=0, require_user_verification=True)
+    assert checked.user_verified
 print(json.dumps({'isolated_import': 'PASS', 'index.web_health': 'PASS'}))
 '''
         with tempfile.TemporaryDirectory(prefix='scada-web-zip-') as directory:
             root = Path(directory)
             with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.2.zip') as archive:
                 archive.extractall(root)
+            from passkey_fixtures import Authenticator
+            from webauthn.helpers import bytes_to_base64url
+            authenticator = Authenticator()
+            options = {'publicKey': {'challenge': bytes_to_base64url(os.urandom(32))}}
+            (root / 'signature-fixture.json').write_text(json.dumps({
+                'credential': authenticator.response(options),
+                'challenge': options['publicKey']['challenge'],
+                'public_key': bytes_to_base64url(authenticator.public)}))
             env = {key: value for key, value in os.environ.items() if key != 'PYTHONPATH'}
             env['AWS_EC2_METADATA_DISABLED'] = 'true'
             result = subprocess.run([sys.executable, '-I', '-c', worker, str(root)], cwd=root,
@@ -83,6 +108,12 @@ print(json.dumps({'isolated_import': 'PASS', 'index.web_health': 'PASS'}))
                                      env=env, capture_output=True, text=True, timeout=30)
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("No module named 'range_analytics'", missing.stderr)
+            shutil.rmtree(root / 'cryptography')
+            dependency = subprocess.run([sys.executable, '-I', '-c',
+                'import sys; sys.path = [sys.argv[1]] + [p for p in sys.path if "site-packages" not in p]; import webauthn', str(root)],
+                cwd=root, env=env, capture_output=True, text=True, timeout=30)
+            self.assertNotEqual(dependency.returncode, 0)
+            self.assertIn("No module named 'cryptography'", dependency.stderr)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(json.loads(result.stdout.splitlines()[-1]),
                          {'isolated_import': 'PASS', 'index.web_health': 'PASS'})

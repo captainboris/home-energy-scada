@@ -20,6 +20,7 @@ from common import AppError, GAP_SECONDS, METRICS, VERSION, ZONE, iso
 from history_service import boundary_epoch_ms, unified_history
 from range_analytics import build_range_summary
 from storage import Store, is_condition_failure
+import passkeys
 from telemetry_storage import (TelemetryStore, telemetry_health,
                                telemetry_history, telemetry_incremental)
 
@@ -132,16 +133,18 @@ def password_version(password):
     return hashlib.sha256(('energy-session-v2:' + password).encode()).hexdigest()
 
 
-def json_body(event):
+def json_body(event, max_bytes=4096):
     headers = {k.lower(): v for k, v in (event.get('headers') or {}).items()}
     if headers.get('content-type', '').split(';')[0].lower() != 'application/json':
         raise AppError(415, 'JSON_REQUIRED', '请求需要使用 application/json。')
     body = event.get('body') or '{}'
-    if len(body) > 8192:
+    if len(body) > max_bytes * 2:
         raise AppError(413, 'BODY_TOO_LARGE', '请求内容过大。')
     try:
         raw = base64.b64decode(body, validate=True) if event.get('isBase64Encoded') else body.encode()
-        if len(raw) > 4096:
+        if len(raw) > max_bytes:
+            if max_bytes != 4096:
+                raise AppError(413, "BODY_TOO_LARGE", "请求内容过大。")
             raise ValueError()
         parsed = json.loads(raw)
         if not isinstance(parsed, dict):
@@ -193,6 +196,10 @@ def require_session(event, password, now, store):
         raise AppError(401, 'TOKEN_EXPIRED', '会话已过期，请重新登录。')
     if now - float(session['last_activity']) >= IDLE_SECONDS:
         raise AppError(401, 'SESSION_IDLE', '超过30分钟没有操作，已自动退出。')
+    if session.get("credential_key"):
+        if os.environ.get("PASSKEY_ENABLED") != "true":
+            raise AppError(401, "TOKEN_INVALID", "Passkey 会话已停用，请使用密码。")
+        passkeys.active_credential(store, session["credential_key"])
     return identifier, session
 
 
@@ -210,11 +217,17 @@ def login(event, password, now, store):
     if not isinstance(provided, str) or not hmac.compare_digest(
             hashlib.sha256(provided.encode()).digest(), hashlib.sha256(password.encode()).digest()):
         raise AppError(401, 'WRONG_PASSWORD', '访问密码不正确。')
+    return create_session(password, now, store)
+
+
+def create_session(password, now, store, credential_key=None):
     # Independent random session secret; shortening the login password cannot forge a cookie.
     token = secrets.token_hex(32)
     session = {'pk': 'AUTH#SESSION', 'sk': hashlib.sha256(token.encode()).hexdigest(),
                'password_version': password_version(password), 'last_activity': int(now),
                'absolute_expires': int(now) + ABSOLUTE_SECONDS, 'expires_at': int(now) + IDLE_SECONDS}
+    if credential_key:
+        session["credential_key"] = credential_key
     store.put(session)
     cookie = f'{COOKIE}={token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age={ABSOLUTE_SECONDS}'
     return response(200, session_payload(session), [cookie])
@@ -495,6 +508,34 @@ def dispatch(event, context, trace):
     if method == 'POST':
         trace['auth_stage'] = 'origin_validation'
         check_origin(event)
+    if method == 'POST' and path.startswith('/api/passkey/'):
+        origin, rp_id = passkeys.settings()
+        passkeys.check_origin(event, origin)
+        ip = event.get('requestContext', {}).get('http', {}).get('sourceIp', 'unknown')
+        passkeys.rate_limit(store, ip, now)
+        body = json_body(event, max_bytes=16384)
+        version = password_version(password)
+        trace['auth_stage'] = 'passkey_validation'
+        if path == '/api/passkey/login/options':
+            data, cookie = passkeys.options(store, 'login', now, origin, rp_id, version)
+            return response(200, data, [cookie])
+        if path == '/api/passkey/login/verify':
+            key = passkeys.verify(store, event, body, 'login', now, origin, rp_id, version)
+            result = create_session(password, time.time(), store, key)
+            result['cookies'].append(f'{passkeys.CEREMONY_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0')
+            trace['auth_stage'] = 'authenticated'
+            return result
+        identifier, _session = require_session(event, password, now, store)
+        if path == '/api/passkey/register/options':
+            data, cookie = passkeys.options(store, 'register', now, origin, rp_id, version,
+                                           identifier, body.get('permission'))
+            return response(200, data, [cookie])
+        if path == '/api/passkey/register/verify':
+            data = passkeys.verify(store, event, body, 'register', now, origin, rp_id, version, identifier)
+            return response(200, data, [f'{passkeys.CEREMONY_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'])
+        if path == '/api/passkey/manage':
+            return response(200, passkeys.manage(store, body, now, origin))
+        raise AppError(404, 'NOT_FOUND', '没有这个接口。')
     if method == 'POST' and path == '/api/login':
         trace['auth_stage'] = 'password_validation'
         result = login(event, password, now, store)
@@ -502,11 +543,13 @@ def dispatch(event, context, trace):
         return result
     if method == 'POST' and path == '/api/logout':
         trace['auth_stage'] = 'logout'
+        passkeys.cancel_challenge(store, event)
         identifier = token_from(event)
         if identifier:
             store.table.delete_item(Key={'pk': 'AUTH#SESSION', 'sk': identifier})
         return response(200, {'ok': True},
-                        [f'{COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'])
+                        [f'{COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0',
+                          f'{passkeys.CEREMONY_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'])
 
     trace['auth_stage'] = 'session_validation'
     identifier, session = require_session(event, password, now, store)
