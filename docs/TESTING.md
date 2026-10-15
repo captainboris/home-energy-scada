@@ -2,6 +2,34 @@
 
 执行日期：2026-10-02。测试没有访问 Production AWS/FoxESS，也没有修改外部资源。
 
+## Passkey validation — 2026-10-15 (Australia/Sydney)
+
+- Baseline main `69cc74a`: frontend 101 tests/build; authentication-containing backend suite 37 tests PASS.
+- `npm --prefix source/frontend-react test`: 118 PASS (17 new serialization/UI/Session checks).
+- `npm --prefix source/frontend-react run build`: TypeScript/Vite PASS; existing chunk-size warning.
+- `PYTHONPATH=source:source/lightsail-collector python -m unittest discover -s tests -p 'test_*.py' -q`: 101 PASS: 86 existing + 15 real-crypto/moto contract/recovery cases, including actual ZIP closure/negative controls.
+- Pinned Web runtime dependency audit (`pip-audit -r source/requirements-web.txt --no-deps --disable-pip`): PASS, no known vulnerabilities in the final closure. Earlier vulnerable compatibility pins were replaced and protocol/ZIP tests rerun.
+- Collector suite: 23 PASS; code unchanged.
+- `browser-smoke.cjs`: Chromium mocked chart, simulated touch and page lifecycle PASS.
+- `passkey-smoke.cjs`: real Chromium WebAuthn with a virtual authenticator, mocked HTTP APIs:
+  registration/assertion, login landing and valid-session deep link PASS. Actual serialized browser responses also verified by pinned Python WebAuthn library.
+- Canonical builder: production ARM64 wheels/package PASS. Actual Web ZIP extracted into a separate directory;
+  network-disabled public Lambda Python 3.12 ARM64 runtime via user-mode QEMU: import index/index.web,
+  module origins and a real signature PASS. This proves package/runtime compatibility, not production deployment.
+- Existing artifact tests: host-matching ZIP in a fresh isolated Python process, missing module and missing
+  cryptography negative controls, frontend resource closure PASS. Production artifacts must be rebuilt with
+  default `WEB_ARCH=aarch64` after the host-matching test build.
+- NOT VERIFIED: real iPhone Safari / Face ID / Home Screen, physical device recovery, production URL/IAM,
+  AWS/FoxESS and deployment. Full-delivery builder not run (historical rollback ZIPs absent); lists/syntax checked.
+
+Browser tools are optional local tooling (as with existing smoke), not runtime dependencies. Run a Vite
+preview on port 4173, with Playwright resolvable in NODE_PATH and its Chromium installed, then:
+
+```bash
+node source/frontend-react/tests/browser-smoke.cjs
+node source/frontend-react/tests/passkey-smoke.cjs
+```
+
 ## PR5 validation — 2026-10-08
 
 基于 main `983bdb0`，仅提取 Web/API range orchestration；不改变事实表或 living behaviour specs。

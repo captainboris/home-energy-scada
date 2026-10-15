@@ -1,0 +1,9 @@
+# Web-only runtime dependencies; pinned closure tested with Python 3.12 / Linux.
+webauthn==2.7.0
+asn1crypto==1.5.1
+cbor2==6.1.5
+cryptography==50.0.2
+pyOpenSSL==26.4.0
+cffi==2.1.1
+pycparser==3.11
+typing_extensions==4.16.0

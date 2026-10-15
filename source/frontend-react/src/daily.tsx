@@ -1,3 +1,4 @@
+import { PasskeyManager } from "./components/PasskeyControls";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { DailyData, Period } from "./types";
@@ -115,8 +116,9 @@ function Daily() {
   ];
 
   return <main>
-    <PageState phase={session.phase} message={session.message} onLogin={session.login}>
+    <PageState phase={session.phase} message={session.message} onLogin={session.login} preparePasskey={session.preparePasskey} completePasskey={session.completePasskey}>
       <Header page="daily" period={period} onLogout={() => { stopRef.current(); session.logout(); }} />
+      <PasskeyManager request={session.request} complete={session.completePasskey} showLogin={session.showLogin} />
       <section>
         {!!(error || warnings.length) && <div className="banner" role="status">{[error, ...warnings].filter(Boolean).join("\n")}</div>}
         <div className="toolbar">

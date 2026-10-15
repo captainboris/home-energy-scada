@@ -1,3 +1,4 @@
+import { PasskeyManager } from "./components/PasskeyControls";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { HistoryData, LiveData, Period, Reading, TelemetryHealth, ZoomRange } from "./types";
@@ -228,8 +229,9 @@ function Overview() {
   }, []);
 
   return <main>
-    <PageState phase={session.phase} message={session.message} onLogin={session.login}>
+    <PageState phase={session.phase} message={session.message} onLogin={session.login} preparePasskey={session.preparePasskey} completePasskey={session.completePasskey}>
       <Header page="overview" period={period} onLogout={() => { stopData(); session.logout(); }} />
+      <PasskeyManager request={session.request} complete={session.completePasskey} showLogin={session.showLogin} />
       <section>
         {!!(error || history?.warnings?.length) && <div className="banner" role="status">
           {[error, ...(history?.warnings ?? [])].filter(Boolean).join("\n")}

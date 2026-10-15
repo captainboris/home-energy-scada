@@ -263,7 +263,10 @@ compute a peak.
 
 ## 10. Authentication / freshness — MUST PRESERVE
 
-- Existing password-session model remains.
+- Existing password-session model remains; independently authorized Passkeys are an optional login path.
+- Both methods use the same Session cookie, 7-day absolute expiry and login landing.
+- Shared password knowledge does not grant Passkey registration or revocation permission.
+- Password rotation invalidates old Sessions; Passkey credentials are revoked separately.
 - Idle logout: 30 minutes of user inactivity.
 - Background polling is not user activity.
 - Source timestamp, not poll completion, determines reading freshness.

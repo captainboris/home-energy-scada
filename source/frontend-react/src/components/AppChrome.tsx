@@ -1,4 +1,6 @@
 import { FormEvent, ReactNode, useState } from "react";
+import { PasskeyLogin } from "./PasskeyControls";
+import type { PasskeyOptions } from "../passkey";
 import type { Period } from "../types";
 import { UI, t, useLanguage } from "../ui";
 
@@ -40,9 +42,11 @@ export function AuthLoading({ message }: { message?: string }) {
   </section>;
 }
 
-export function Login({ message, onLogin }: {
+export function Login({ message, onLogin, preparePasskey, completePasskey }: {
   message: string;
   onLogin: (password: string) => Promise<void>;
+  preparePasskey?: () => Promise<PasskeyOptions>;
+  completePasskey?: (options: PasskeyOptions, kind: "login" | "register", label?: string) => Promise<void>;
 }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -69,19 +73,22 @@ export function Login({ message, onLogin }: {
         maxLength={256} value={password} onChange={event => setPassword(event.target.value)} />
       <button className="primary" type="submit" disabled={busy}>{busy ? t("common.loading") : t("login.submit")}</button>
     </form>
+    {preparePasskey && completePasskey && <PasskeyLogin prepare={preparePasskey} complete={completePasskey} disabled={busy} />}
     <p className="error" role="alert">{error}</p>
   </section>;
 }
 
-export function PageState({ phase, message, onLogin, children }: {
+export function PageState({ phase, message, onLogin, preparePasskey, completePasskey, children }: {
   phase: "loading" | "login" | "app" | "error";
   message: string;
   onLogin: (password: string) => Promise<void>;
+  preparePasskey?: () => Promise<PasskeyOptions>;
+  completePasskey?: (options: PasskeyOptions, kind: "login" | "register", label?: string) => Promise<void>;
   children: ReactNode;
 }) {
   if (phase === "loading") return <AuthLoading />;
   if (phase === "error") return <AuthLoading message={message} />;
-  if (phase === "login") return <Login message={message} onLogin={onLogin} />;
+  if (phase === "login") return <Login message={message} onLogin={onLogin} preparePasskey={preparePasskey} completePasskey={completePasskey} />;
   return <>{children}</>;
 }
 

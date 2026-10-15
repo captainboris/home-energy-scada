@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SessionData } from "./types";
 import { UI, t } from "./ui";
-import { loginLandingPath } from "./navigation";
+import { replaceLoginLanding } from "./navigation";
 import { requestJson } from "./api";
+import { browserCredential, credentialJson, type PasskeyOptions } from "./passkey";
 
 type Phase = "loading" | "login" | "app" | "error";
 
 export function useSession() {
+  const authGeneration = useRef(0);
   const controllers = useRef(new Set<AbortController>());
   const [phase, setPhase] = useState<Phase>("loading");
   const [message, setMessage] = useState("");
@@ -19,6 +21,7 @@ export function useSession() {
     requestJson<T>(path, controllers.current, options), []);
 
   const showLogin = useCallback((reason = "") => {
+    authGeneration.current += 1;
     for (const controller of controllers.current) controller.abort();
     controllers.current.clear();
     setMessage(reason);
@@ -32,13 +35,43 @@ export function useSession() {
   }, []);
 
   const login = useCallback(async (password: string) => {
+    authGeneration.current += 1;
+    for (const controller of controllers.current) controller.abort();
+    controllers.current.clear();
+    const generation = authGeneration.current;
     const session = await request<SessionData>("/api/login", {
       method: "POST",
       body: JSON.stringify({ password })
     });
+    if (generation !== authGeneration.current) return;
     UI.writeStorage(UI.ACTIVITY_KEY, session.last_activity * 1000);
     acceptSession(session);
-    window.location.replace(loginLandingPath(UI.todayString()));
+    replaceLoginLanding(UI.todayString());
+  }, [acceptSession, request]);
+
+  const preparePasskey = useCallback(() => request<PasskeyOptions>("/api/passkey/login/options", {
+    method: "POST", body: "{}"
+  }), [request]);
+
+  const completePasskey = useCallback(async (options: PasskeyOptions, kind: "login" | "register", label = "") => {
+    const generation = authGeneration.current;
+    const controller = new AbortController();
+    controllers.current.add(controller);
+    try {
+      const credential = credentialJson(await browserCredential(options, kind, controller.signal));
+      if (controller.signal.aborted || generation !== authGeneration.current) throw new DOMException("Cancelled", "AbortError");
+      const result = await request<SessionData>(`/api/passkey/${kind}/verify`, {
+        method: "POST", body: JSON.stringify({ challenge_id: options.challenge_id, credential, label })
+      });
+      if (controller.signal.aborted || generation !== authGeneration.current) throw new DOMException("Cancelled", "AbortError");
+      if (kind === "login") {
+        UI.writeStorage(UI.ACTIVITY_KEY, result.last_activity * 1000);
+        acceptSession(result);
+        replaceLoginLanding(UI.todayString());
+      }
+    } finally {
+      controllers.current.delete(controller);
+    }
   }, [acceptSession, request]);
 
   const logout = useCallback(async (reason = "", broadcast = true) => {
@@ -52,9 +85,11 @@ export function useSession() {
   }, [request, showLogin]);
 
   useEffect(() => {
+    const generation = authGeneration.current;
     request<SessionData>("/api/session")
-      .then(acceptSession)
+      .then(session => { if (generation === authGeneration.current) acceptSession(session); })
       .catch((error: Error & { status?: number }) => {
+        if (generation !== authGeneration.current) return;
         if (error.status === 401) showLogin("");
         else {
           setMessage(error.message);
@@ -62,6 +97,7 @@ export function useSession() {
         }
       });
     return () => {
+      authGeneration.current += 1;
       for (const controller of controllers.current) controller.abort();
       controllers.current.clear();
     };
@@ -69,6 +105,7 @@ export function useSession() {
 
   useEffect(() => {
     if (phase !== "app") return;
+    const generation = authGeneration.current;
     let activityTimer: number | null = null;
 
     const sendActivity = async () => {
@@ -84,7 +121,7 @@ export function useSession() {
         });
       } catch (error) {
         const apiError = error as Error & { status?: number };
-        if (apiError.status === 401) showLogin(apiError.message);
+        if (generation === authGeneration.current && apiError.status === 401) showLogin(apiError.message);
       } finally {
         activityBusy.current = false;
       }
@@ -126,5 +163,5 @@ export function useSession() {
     };
   }, [logout, phase, request, showLogin]);
 
-  return { phase, message, request, login, logout, showLogin };
+  return { phase, message, request, login, logout, showLogin, preparePasskey, completePasskey };
 }

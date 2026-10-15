@@ -4,6 +4,10 @@
 
 ## Unreleased
 
+### 功能
+
+- 可选 Passkey/WebAuthn 登录与管理员一次性授权注册/管理，多凭据、独立撤销；复用密码 Session、30min idle/7d absolute expiry 与现有登录落点。密码 fallback 保留，默认关闭；Web ZIP 包含固定 WebAuthn 原生依赖，部署及安全回滚见 `PASSKEYS.md`。真实 iPhone Safari/Face ID/Home Screen 验证仍需完成。
+
 ### 重构
 
 - Range analytics 的业务编排与 range 专用 helpers 从 `lambda_function.py` 提取到 Web/API 专属 `range_analytics.py`；HTTP 层保留鉴权、窗口/安装配置解析及响应封装，Collector 共用 `analytics.py` 不变。保持 API、查询边界、官方 report/安装日期/两源 peaks/warnings 与 completion-time `checked_at` 行为；同步当前 Web 打包清单并增加实际 ZIP 独立导入和资源闭包验证。部署仅更新 Web 后端代码，可沿用当前 frontend Layer；回滚恢复前一个 Web 包。
