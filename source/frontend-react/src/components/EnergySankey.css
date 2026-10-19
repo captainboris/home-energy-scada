@@ -1,0 +1,22 @@
+.energy-sankey .chart-card{padding:18px 19px;color:var(--text)}
+.energy-sankey p{font-size:12px;line-height:1.6;margin:8px 0}
+.energy-sankey-note{max-width:95ch}
+.energy-sankey-notices{padding-left:18px;color:#efc37b;font-size:12px;line-height:1.6}
+.energy-sankey-notices:empty{display:none}
+.energy-sankey-totals{display:flex;justify-content:space-between;gap:16px;font-size:12px;margin-top:20px}
+.energy-sankey-chart{width:100%;-webkit-tap-highlight-color:transparent}
+/* ECharts handles tap/hover only. Its renderer must not capture vertical scrolling. */
+.energy-sankey-chart,.energy-sankey-chart *{touch-action:pan-y!important}
+.energy-sankey-difference{padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.energy-sankey-ports{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:16px}
+.energy-sankey-ports h3{font-size:12px;color:var(--muted);margin:0 0 10px}
+.energy-sankey-ports dl{margin:0;font-size:12px}
+.energy-sankey-ports dl>div{display:flex;justify-content:space-between;gap:12px;padding:8px 0}
+.energy-sankey-ports dt{display:flex;align-items:baseline;gap:7px}
+.energy-sankey-ports dt>span{display:inline-block;flex:none;width:7px;height:7px;border-radius:50%}
+.energy-sankey-ports dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.energy-sankey-ports small{display:block;color:var(--muted);font-size:10px;max-width:28ch}
+.energy-sankey-proportions dl>div{display:grid;grid-template-columns:minmax(0,1fr) auto}
+.energy-sankey-bar{grid-column:1/-1;height:8px;background:#243148}
+.energy-sankey-bar>span{display:block;height:100%}
+@media(max-width:540px){.energy-sankey .chart-card{padding:14px 10px}.energy-sankey-ports{grid-template-columns:1fr;gap:14px}.energy-sankey-totals{font-size:11px;gap:8px}.energy-sankey-tooltip{font-size:11px!important}}

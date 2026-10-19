@@ -100,3 +100,20 @@ Chromium virtual WebAuthn and mock APIs are browser evidence only, not Face ID /
 Real iPhone Safari, Home Screen, device passcode/cancel/recovery and production URL/IAM/deployment are
 **NOT VERIFIED** and required before production enablement. Existing chart/page smoke remains required.
 Detailed commands/results are in TESTING.md; rollout/recovery are in PASSKEYS.md.
+
+## Aggregate Sankey MVP validation — 2026-10-20 (Australia/Sydney)
+
+Increment evidence only; historical release/device statuses above are not rewritten. Commands and limitations are in `TESTING.md`.
+
+| Check / relevant IDs | Evidence | Result |
+| --- | --- | --- |
+| Six original values, zero/null/missing/N/A, positive/negative R, floating arithmetic, no attributed links | pure model + DOM tests, rendered Chromium SVG width ratios | PASS |
+| Official source/dates/warnings, Partial, installation crossing, unequal metric counts, week/month/year, 23h/25h DST, intraday unsupported (R34) | model fixtures; existing backend report/range suite | PASS |
+| Same kWh scale when unbalanced, zero edge omission, ECharts 1px subpixel fallback | actual SVG paths and separate proportion-bar browser assertions | PASS |
+| Resize/dispose/StrictMode, old graph/Tooltip cleanup, data and language update | component tests + mocked Chromium | PASS |
+| Rapid period change, stale success/401, recurring/manual refresh, visibility and session lifecycle (R07, R40, R43) | unchanged page/Session tests + existing page browser smoke; new stale graph smoke | PASS |
+| Existing Current Readings/KPI, source routing, peaks and chart zoom/Sync/Restore/live (R01–R16, R28–R38, R44–R45) | full frontend/backend tests + existing Chromium chart smoke | PASS |
+| Desktop hover, 320–1440px layout, mobile Tap Tooltip and vertical scroll | rendered Chromium, mobile viewport/touch emulation; no device equivalence claim | PASS |
+| Actual ZIP/frontend resource closure (R41) | canonical builder / isolated ZIP tests | PASS |
+| Real iPhone Safari/Home Screen, physical touch/scroll/pinch, device layout/accessibility (R21–R27, R39); production API/deployment | target hardware/production not accessed | NOT TESTED |
+| Actual common report cutoff/hourly completeness, meter boundaries and FoxESS DST bucket representation | no production energy data inspected; UI explicitly disclaims verification | NOT TESTED |
