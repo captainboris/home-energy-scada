@@ -1,0 +1,38 @@
+{
+  "data": {
+    "timezone": "Australia/Melbourne",
+    "range": {
+      "preset": "day", "start_date": "2026-10-02", "end_date": "2026-10-02",
+      "start_at": "2026-10-02T00:00:00+10:00", "end_at": "2026-10-03T00:00:00+10:00",
+      "start_ms": 1790863200000, "end_ms": 1790949600000, "key": "fixture"
+    },
+    "energy": {
+      "pv_kwh": 10, "grid_import_kwh": 5, "battery_discharge_kwh": 5,
+      "load_kwh": 8, "grid_export_kwh": 3, "battery_charge_kwh": 4
+    },
+    "availability": {
+      "foxess_data_start_date": "2026-09-13", "battery_install_date": "2026-10-01",
+      "data_applicable": true, "battery_applicable": true
+    },
+    "report_dates": {
+      "start": "2026-10-02", "end": "2026-10-02", "expected_days": 1,
+      "completed_expected_days": 1, "complete_summary_days": 1,
+      "official_days_by_metric": {
+        "pv_kwh": 1, "grid_import_kwh": 1, "battery_discharge_kwh": 1,
+        "load_kwh": 1, "grid_export_kwh": 1, "battery_charge_kwh": 1
+      },
+      "expected_days_by_metric": {
+        "pv_kwh": 1, "grid_import_kwh": 1, "battery_discharge_kwh": 1,
+        "load_kwh": 1, "grid_export_kwh": 1, "battery_charge_kwh": 1
+      }
+    },
+    "metric_sources": { "energy": {
+      "pv_kwh": "foxess_report_daily_sum", "grid_import_kwh": "foxess_report_daily_sum",
+      "battery_discharge_kwh": "foxess_report_daily_sum", "load_kwh": "foxess_report_daily_sum",
+      "grid_export_kwh": "foxess_report_daily_sum", "battery_charge_kwh": "foxess_report_daily_sum"
+    } },
+    "battery": { "applicable": true },
+    "data_quality": { "raw_coverage_pct": 0, "raw_samples": 0, "expected_samples": 288 },
+    "warnings": [], "warning_codes": [], "checked_at": "2026-10-02T23:00:00Z"
+  }
+}

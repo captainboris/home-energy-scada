@@ -43,6 +43,17 @@ Legacy power sample 典型约 5 minutes。该 source 的 Peak 代表 legacy samp
 
 以下 Energy totals 以 FoxESS official report/API 为 authoritative：PV Generation、Home Consumption、Grid Import、Grid Export、Battery Charge、Battery Discharge。Fast Telemetry power integration 不替代 official completed-day report。Fallback integration 只沿用既有受控逻辑，不改变 authoritative semantics。
 
+## Aggregate Energy Flow
+
+- 消费 range API 的六项 `energy`、`metric_sources.energy`、`report_dates`、安装日期与 warnings；不积分 raw/rollup，不使用 raw coverage 证明六项电量完整。
+- 官方报表值是端口累计量，不是 source→destination measured flow。端到端归属保持 unknown。
+- `null` / missing / not applicable 与真实 0 分别保留；非官方或来源缺失的数值不参与六项可比图。
+- 仅午夜到午夜的 Melbourne 日历范围适用，23h/25h DST 日不按固定 24h 重算。现有 FoxESS 24-slot normalization 不在本次修改范围。
+- 期间含今天时标记 Partial；日报天数不等、跨数据/电池安装边界或 official-report missing 时不画可比图。计数相同也不能确认小时完整性和共同截止时间。
+- `R = PV + GridImport + BatteryDischarge − Load − GridExport − BatteryCharge` 是 derived accounting difference，按现有 API 的三位小数精度消除浮点噪声；不是已识别损耗、效率或储能变化。不改变 link value、加虚构流量或设置物理损耗容差。
+- Tooltip 百分比的分母为相应来源侧或去向侧总量，两侧分母可不同；零分母不产生百分比。
+- ECharts 6 的 1px edge floor 会夸大零/极小值：零链接省略，正值按固定图高计算应低于 1px 时不使用 Sankey，改为两组共用最大侧总量作尺度的比例条。该判断仅是渲染限制，不是数据质量或能量阈值。
+
 ## Peak definition
 
 Peak 是 selected analytics range 内 canonical power channel 的最大真实观察值，并携带该 winning observation 的 timestamp：

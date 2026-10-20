@@ -7,6 +7,7 @@ import { useSession } from "./useSession";
 import { Header, PageState, formatRange } from "./components/AppChrome";
 import { PeriodNavigator } from "./components/PeriodNavigator";
 import { KpiCard } from "./components/KpiCard";
+import { EnergySankey } from "./components/EnergySankey";
 
 const energyCards = [
   ["energy.pv", "pv_kwh"], ["energy.load", "load_kwh"],
@@ -142,6 +143,8 @@ function Daily() {
               unit={notApplicable ? "" : "kWh"} meta={notApplicable ? t("battery.notInstalled") : ""} />;
           })}
         </div></section>
+
+        <EnergySankey data={data} period={period} />
 
         <section className="analytics-section"><h2>{t("daily.performance")}</h2><div className="grid one">
           <KpiCard label={t("performance.self")} description={t("performance.formula")}

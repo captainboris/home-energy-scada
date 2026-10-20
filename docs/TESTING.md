@@ -1,5 +1,27 @@
 # v0.6.2 Testing Report
 
+## Aggregate Sankey MVP — 2026-10-20 (Australia/Sydney)
+
+Baseline main `ab0373f`: 118 frontend tests, TypeScript/Vite build and existing mocked Chromium chart/page smoke PASS. No production AWS/FoxESS access or deployment.
+
+| Command / evidence | Result |
+| --- | --- |
+| `npm --prefix source/frontend-react test` | PASS — 153 tests (35 new model/component checks); original Session, page lifecycle, KPI/Current Readings and Historian tests retained |
+| `npm --prefix source/frontend-react run build` | PASS — TypeScript + Vite; existing >500kB chunk warning remains |
+| `PYTHONPATH=source:source/lightsail-collector <venv-python> -m unittest discover -s tests -p 'test_*.py' -q` | PASS — 101 backend/API/auth/actual-artifact tests, with mocked external services |
+| `PYTHONPATH=source:source/lightsail-collector:tests <venv-python> -m unittest test_web_artifact -q` | PASS — 3 actual ZIP/module/resource-closure checks; host-matching Web package is test-only |
+| `PYTHONPATH=source/lightsail-collector <venv-python> -m unittest discover -s source/lightsail-collector/tests -p 'test_*.py' -q` | PASS — 23; local mock socket tests need local-network access in a sandbox |
+| `node source/frontend-react/tests/browser-smoke.cjs` | PASS — same Chromium mock Overview/Historian and page lifecycle smoke as baseline |
+| `node source/frontend-react/tests/energy-sankey-smoke.cjs` | PASS — rendered positive/negative R with one scale, zero links absent, subpixel fallback, missing/old graph cleanup, rapid periods, 320/390/900/1440px resize, language, hover/tap, Partial and emulated touch scroll |
+
+Browser setup: run frontend preview at `127.0.0.1:4173`; provide externally installed Playwright via `NODE_PATH` and Chromium via `PLAYWRIGHT_BROWSERS_PATH` when necessary. Set `SCADA_SMOKE_OUTPUT` to an ignored/scratch directory for PNGs. No browser tooling was added as an application dependency.
+
+The rendered test exposed ECharts 6's 1px minimum edge extent. Production code omits zero edges and switches subpixel-positive cases to separate bars with a common kWh scale; it never rescales official values or creates balancing flows. No physical-loss tolerance is introduced. Tiny bar style assertions allow CSS serialization precision only.
+
+NOT TESTED: real iPhone Safari/Home Screen/touch/VoiceOver, production AWS/FoxESS/deployment, actual AC/DC metering boundaries, aligned hourly report completeness/cutoff and FoxESS 24-slot DST behaviour. Mock data proves UI/accounting behaviour, not production data quality. Manual smoke: compare all six labels with existing KPI values, test positive/negative R, zero/missing/Partial/install-crossing periods, switch language/period, tap ribbons and vertically scroll on the target iPhone.
+
+Deployment is frontend Layer only; keep current Web/Collector code and data. Rebuild deployment artifacts normally (the host-matching Web test ZIP is not a production deployment package). Rollback restores the previous frontend Layer. No version bump or release.
+
 执行日期：2026-10-02。测试没有访问 Production AWS/FoxESS，也没有修改外部资源。
 
 ## Passkey validation — 2026-10-15 (Australia/Sydney)

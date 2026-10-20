@@ -20,6 +20,7 @@ Canonical frontend source 是 [source/frontend-react/](../source/frontend-react/
 | --- | --- |
 | [overview.tsx](../source/frontend-react/src/overview.tsx) | Overview composition、selected period/history 的请求有效性与 pending-live handoff、独立 realtime polling/cursor、metric visibility 与跨 chart sync/restore commands |
 | [daily.tsx](../source/frontend-react/src/daily.tsx) | Daily Analytics composition、selected period、summary request 有效性、completion-based 约 60 秒刷新与 visibility/teardown |
+| [energySankey.ts](../source/frontend-react/src/energySankey.ts) / [EnergySankey.tsx](../source/frontend-react/src/components/EnergySankey.tsx) | 纯 aggregate report model/options：适用性、逐指标日期覆盖、未解释差额与 ECharts subpixel fallback；独立组件负责展示、Tooltip、language、resize/dispose。不拥有请求或来源到去向分配 |
 | [useSession.ts](../source/frontend-react/src/useSession.ts) | Session phase、login/logout、human activity、idle 与跨标签通知；维护 request controllers 并在退出或卸载时取消请求 |
 | `passkey.ts` / `components/PasskeyControls.tsx` | WebAuthn 浏览器序列化及登录/授权管理 UI；browser ceremony cancellation 与登录落点仍由 useSession 拥有，服务端决定验证成功 |
 | [api.ts](../source/frontend-react/src/api.ts) | 正式 React frontend 的 JSON HTTP transport、request timeout 与 error metadata/localization；使用 session 提供的 controller 集合，不拥有 polling 或 session phase |

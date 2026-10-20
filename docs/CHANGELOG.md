@@ -6,6 +6,8 @@
 
 ### 功能
 
+- Energy Analytics 增加 Aggregate Energy Flow：六项官方报表电量经虚拟未分配 Pool 展示，显示正负未解释差额、报表范围、Partial 与完整性未知提示。缺项/跨安装日/不可比范围降级保留原值；ECharts 1px floor 会夸大小电量时改用共享尺度比例条，零值不造流量。Frontend-only，复用既有 summary/Period/session，不引入配对归属或 Time-resolved 计算；仅需更新 frontend Layer，回滚恢复前一 Layer，无 Web/采集/数据库变更。
+
 - 可选 Passkey/WebAuthn 登录与管理员一次性授权注册/管理，多凭据、独立撤销；复用密码 Session、30min idle/7d absolute expiry 与现有登录落点。密码 fallback 保留，默认关闭；Web ZIP 包含固定 WebAuthn 原生依赖，部署及安全回滚见 `PASSKEYS.md`。真实 iPhone Safari/Face ID/Home Screen 验证仍需完成。
 
 ### 重构

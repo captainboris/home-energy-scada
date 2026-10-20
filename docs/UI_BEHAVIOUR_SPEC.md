@@ -2,6 +2,15 @@
 
 版本基线：v0.6.2。本文定义当前用户交互 contract。
 
+## Aggregate Energy Flow (Energy Analytics only)
+
+- 独立 ECharts Sankey，左侧来源、中间未分配统计 Pool、右侧去向；六项官方 kWh 使用同一比例，不表达配对归属。
+- 正负 accounting difference 均原样展示；Pool 未填满一侧不表示额外流量或已确认损耗。
+- Hover / Tap Tooltip 显示原始 kWh、占该侧总量的比例、官方报表来源、日报天数及 Partial/小时完整性未知提示。
+- 不拖动节点，不提供 zoom/pan；纵向手势保留 page scroll。数据/语言更新隐藏旧 Tooltip，resize 与卸载清理 chart/observer。
+- 全零只显示零值说明；缺项/不适用/不可比只显示逐项原值与状态。无法按比例绘制的极小流带降级为共享 kWh 尺度的比例条，不设置最小能量宽度。
+- Overview / Historian / 现有 KPI 布局、Period Navigator 与刷新/session 行为保持不变。
+
 ## Desktop mouse interactions
 
 | Input | Required behaviour |

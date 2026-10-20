@@ -107,6 +107,18 @@ export interface ZoomRange {
 }
 
 export interface DailyData {
+  timezone?: string;
+  range?: HistoryRange;
+  report_dates?: {
+    start: string | null;
+    end: string | null;
+    expected_days: number;
+    completed_expected_days: number;
+    complete_summary_days: number;
+    official_days_by_metric: Record<string, number>;
+    expected_days_by_metric: Record<string, number>;
+  };
+  metric_sources?: { energy?: Record<string, string> };
   energy?: Record<string, number | null>;
   performance?: { self_sufficiency_pct?: number | null };
   peaks?: Record<string, {
@@ -128,8 +140,13 @@ export interface DailyData {
     raw_samples?: number;
     expected_samples?: number;
   };
-  availability?: { battery_applicable?: boolean };
+  availability?: {
+    foxess_data_start_date?: string;
+    battery_install_date?: string;
+    data_applicable?: boolean;
+    battery_applicable?: boolean;
+  };
   warnings?: string[];
-  warning_codes?: Array<{ code: string; days?: string[] }>;
+  warning_codes?: Array<{ code: string; days?: string[]; metrics?: string[]; message?: string }>;
   checked_at?: string;
 }

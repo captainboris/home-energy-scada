@@ -89,6 +89,19 @@ PV Generation、Home Consumption、Grid Import、Grid Export、Battery Charge、
 
 Daily 页面可见且 session active 时，summary 请求完成后约 60 秒继续刷新（成功或普通失败均续排），不并发、不重复安排 timer。手动刷新替换待执行 timer；hidden 时暂停新 polling，visible 时立即检查，已有请求未完成则合并为完成后一次检查。Period/session 切换或卸载结束旧 owner 的活动，不改变 summary 数据语义，也不把 polling 计为 human activity。
 
+### 9.1 Aggregate Energy Flow
+
+Energy Analytics 在现有六项 KPI 后增加独立 Energy Flow，不改变 KPI 布局、请求、约 60 秒刷新或 session lifecycle。
+六项官方电量连接 `PV / Import / Discharge → Unallocated Energy Pool → Load / Export / Charge`。
+Pool 只是统计汇总，不是物理 AC Bus；不推断任何 source-to-destination attribution，也不将差额称为已确认损耗。
+仅使用同一 `/api/summary/range` response；不读取 Historian 来替代官方电量，不增加 polling。
+
+完整日历日范围、安装日期与逐指标官方日报天数可比时绘图；包含今天标记 Partial。
+缺项、不适用、覆盖不一致或安装前日期仅展示各项原值和状态；自定义非午夜边界显示不支持精确日内流向。
+日期计数相同不保证小时完整性或共同 reporting cutoff，界面必须持续说明该限制。
+显示 `R = PV + Import + Discharge − Load − Export − Charge`，不补平衡流量、不归一化、不修改官方值。
+零值不绘制流带；ECharts 6 会将 subpixel ribbon 强制放大为 1px，遇此情况使用独立 Sources / Destinations 比例条，共用 kWh 尺度，保留原值及 R。
+
 ## 10. Energy Peaks
 
 Energy Peaks 包含 PV、Home Load、Grid Import、Grid Export，scope 为 selected Day/Week/Month/Other range，并显示 winning sample timestamp。
