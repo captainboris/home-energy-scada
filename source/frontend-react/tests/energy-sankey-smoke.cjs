@@ -46,8 +46,9 @@ async function ribbons(page, values) {
   await page.locator(".energy-sankey").scrollIntoViewIfNeeded();
   const positive = await ribbons(page, keys.map(key => response.data.energy[key]));
   assert.ok((await page.locator(".energy-sankey-difference").innerText()).includes("5.00 kWh"));
-  assert.ok((await page.locator(".energy-sankey-note").innerText()).includes("not a physical AC bus"));
-  assert.ok((await page.locator(".energy-sankey").innerText()).includes("Hourly completeness"));
+  assert.ok((await page.locator(".energy-sankey-note").innerText()).includes("attribution is unknown"));
+  assert.equal(await page.locator(".energy-sankey-ports").count(), 0, "No duplicated values under a readable Sankey");
+  assert.equal(await page.locator(".analytics-section").first().getAttribute("class"), "analytics-section energy-sankey");
   assert.equal(calls, 1, "Sankey must not add an API request");
   const firstRibbon = page.locator('.energy-sankey-chart svg path[d*="C"]').first();
   await firstRibbon.hover();

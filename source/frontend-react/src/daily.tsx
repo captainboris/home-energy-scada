@@ -4,7 +4,7 @@ import { createRoot } from "react-dom/client";
 import type { DailyData, Period } from "./types";
 import { UI, t, useLanguage } from "./ui";
 import { useSession } from "./useSession";
-import { Header, PageState, formatRange } from "./components/AppChrome";
+import { Header, PageState } from "./components/AppChrome";
 import { PeriodNavigator } from "./components/PeriodNavigator";
 import { KpiCard } from "./components/KpiCard";
 import { EnergySankey } from "./components/EnergySankey";
@@ -128,26 +128,23 @@ function Daily() {
             <button className="primary" type="button" disabled={busy} onClick={() => load(true)}>
               {busy ? t("common.loading") : t("common.refresh")}
             </button>
-            <span>{document.hidden ? t("status.paused") : t("status.auto")}</span>
           </div>
-          <span className="muted" role="status">{status}</span>
+          <span className="muted" role="status">{busy ? status : ""}</span>
         </div>
-        <div className="range-info"><span>{formatRange(period)}</span><span>{data?.checked_at ? t("status.readAt", { time: UI.stampLabel(data.checked_at, true) }) : ""}</span></div>
+        <EnergySankey data={data} period={period} />
 
         <section className="analytics-section"><h2>{t("daily.energy")}</h2><div className="grid two">
           {energyCards.map(([label, metric]) => {
             const isBattery = metric.startsWith("battery_");
             const notApplicable = isBattery && !batteryAvailable;
-            return <KpiCard key={metric} label={t(label)} description={t("energy.rangeDetail")}
+            return <KpiCard key={metric} label={t(label)}
               loading={!data} value={notApplicable ? t("common.notApplicable") : fmt(data?.energy?.[metric])}
               unit={notApplicable ? "" : "kWh"} meta={notApplicable ? t("battery.notInstalled") : ""} />;
           })}
         </div></section>
 
-        <EnergySankey data={data} period={period} />
-
         <section className="analytics-section"><h2>{t("daily.performance")}</h2><div className="grid one">
-          <KpiCard label={t("performance.self")} description={t("performance.formula")}
+          <KpiCard label={t("performance.self")}
             loading={!data} value={fmt(data?.performance?.self_sufficiency_pct, 1)} unit="%" accent />
         </div></section>
 
@@ -155,16 +152,16 @@ function Daily() {
           {(["pv", "load", "grid_import", "grid_export"] as const).map((metric, index) => {
             const labels = ["peak.pv", "peak.load", "peak.import", "peak.export"];
             const peak = data?.peaks?.[metric];
-            return <KpiCard key={metric} label={t(labels[index])} description={t("peak.detail")}
+            return <KpiCard key={metric} label={t(labels[index])} tooltip={t("peak.detail")}
               loading={!data} value={fmt(peak?.kw)} unit="kW" meta={UI.analyticsTimeLabel(peak?.time, period)} />;
           })}
         </div></section>
 
         <section className="analytics-section"><h2>{t("daily.battery")}</h2><div className="grid two">
-          <KpiCard label={t("battery.reserve")} description={t("battery.reserveDetail", { value: batteryAvailable ? fmt(battery.reserve_soc_pct, 0) : "—" })}
+          <KpiCard label={t("battery.reserve")} tooltip={t("battery.reserveDetail", { value: batteryAvailable ? fmt(battery.reserve_soc_pct, 0) : "—" })}
             loading={!data} value={!batteryAvailable ? t("common.notApplicable") : battery.reserve_reached_time ? UI.analyticsTimeLabel(battery.reserve_reached_time, period) : t("battery.notReached")}
             meta={!batteryAvailable ? t("battery.notInstalled") : battery.reserve_reached_time ? `${fmt(battery.reserve_soc_pct, 0)}%` : ""} />
-          <KpiCard label={t("battery.minimum")} description={t("battery.minimumDetail")}
+          <KpiCard label={t("battery.minimum")}
             loading={!data} value={batteryAvailable ? fmt(battery.minimum_soc_pct, 0) : t("common.notApplicable")}
             unit={batteryAvailable && battery.minimum_soc_pct != null ? "%" : ""}
             meta={!batteryAvailable ? t("battery.notInstalled") : UI.analyticsTimeLabel(battery.minimum_soc_time, period)}
@@ -179,7 +176,7 @@ function Daily() {
           })} loading={!data} value={fmt(data?.data_quality?.raw_coverage_pct, 1)} unit="%"
             progress={data?.data_quality?.raw_coverage_pct ?? null} />
         </div></section>
-        <footer><span>{t("daily.footer")}</span><span>v0.6.2 · React</span></footer>
+        <footer><span>{t("daily.footer")}</span></footer>
       </section>
     </PageState>
   </main>;

@@ -7,7 +7,7 @@ import { nextCursor, shouldAppendToHistorian, shouldPollCurrentReadings } from "
 import { REALTIME_INITIAL_LOOKBACK_MS, REALTIME_POLL_INTERVAL_MS } from "./config";
 import { UI, t, useLanguage } from "./ui";
 import { useSession } from "./useSession";
-import { Header, PageState, formatRange } from "./components/AppChrome";
+import { Header, PageState } from "./components/AppChrome";
 import { PeriodNavigator } from "./components/PeriodNavigator";
 import { CurrentReadings } from "./components/CurrentReadings";
 import { HistorianChart } from "./components/HistorianChart";
@@ -24,15 +24,6 @@ function initialVisibility() {
   let hidden: string[] = [];
   try { hidden = JSON.parse(localStorage.getItem("home-energy-v2-hidden") || "[]"); } catch { hidden = []; }
   return Object.fromEntries(chartGroups.flatMap(group => group.metrics).map(metric => [metric, !hidden.includes(metric)]));
-}
-
-function sourceLabel(data: HistoryData | null) {
-  if (!data) return "";
-  const available = data.source_segments.filter(segment => segment.available);
-  if (available.length > 1) return "REST 5m + Fast telemetry";
-  if (available[0]?.source === "ws_fast") return `Fast telemetry · ${data.resolution_seconds < 60 ? `${data.resolution_seconds}s` : `${data.resolution_seconds / 60}m`}`;
-  if (available[0]?.source === "rest_coarse") return "REST historian · coarse";
-  return "REST historian · ~5m";
 }
 
 function Overview() {
@@ -243,20 +234,11 @@ function Overview() {
             <button className="primary" type="button" disabled={busy} onClick={() => loadHistory(true)}>
               {busy ? t("common.loading") : t("common.refresh")}
             </button>
-            <span>{document.hidden ? t("status.paused") : t("status.liveAuto")}</span>
           </div>
-          <span className="muted" role="status" aria-live="polite">{status}</span>
+          <span className="muted" role="status" aria-live="polite">{busy ? status : ""}</span>
         </div>
         <div className="section-heading"><h2>{t("overview.historian")}</h2></div>
-        <div className="range-info">
-          <span>{formatRange(period)}</span>
-          <div className="timestamps">
-            <span className={`history-source${history?.telemetry_health?.healthy === false ? " is-stale" : ""}`}>
-              {sourceLabel(history)}
-            </span>
-            <span>{history?.checked_at ? t("status.readAt", { time: UI.stampLabel(history.checked_at, true) }) : ""}</span>
-          </div>
-        </div>
+        {history?.telemetry_health?.healthy === false && <p className="history-source is-stale" role="status">{t("flow.stale")}</p>}
         <div className="charts">
           {history ? chartGroups.map(group => <HistorianChart
             key={group.id}
@@ -273,7 +255,6 @@ function Overview() {
         </div>
         <footer>
           <span>{t("overview.footer")}</span>
-          <span>v0.6.2 · React + ECharts · {t("overview.collecting")}</span>
         </footer>
       </section>
     </PageState>

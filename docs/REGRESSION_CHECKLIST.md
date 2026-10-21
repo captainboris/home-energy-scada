@@ -117,3 +117,20 @@ Increment evidence only; historical release/device statuses above are not rewrit
 | Actual ZIP/frontend resource closure (R41) | canonical builder / isolated ZIP tests | PASS |
 | Real iPhone Safari/Home Screen, physical touch/scroll/pinch, device layout/accessibility (R21–R27, R39); production API/deployment | target hardware/production not accessed | NOT TESTED |
 | Actual common report cutoff/hourly completeness, meter boundaries and FoxESS DST bucket representation | no production energy data inspected; UI explicitly disclaims verification | NOT TESTED |
+
+## v0.6.4 UI simplification validation — 2026-10-21 (Australia/Sydney)
+
+Intentional Fact Sheet section 3 change: scene + four live panels, with two-column readings below the scene on narrow screens. All unrelated chart/data/session contracts remain protected. Earlier release/device statuses are historical.
+
+| Check / relevant IDs | Evidence | Result |
+| --- | --- | --- |
+| Live four-entity values, SOC/kWh, import/export, charge/discharge, missing/zero/stale, independent polling (R01–R13) | 156 frontend tests; mocked Chromium scene and page lifecycle | PASS |
+| Actual image under production CSP; SVG movement; 320/390/600/601/768/850/1440px bounds; bilingual labels | browser-smoke with existing CSP, decoded image, moving SVG transform and layout assertions | PASS |
+| Four vertical Historian charts; Hover/selection/Wheel/Sync/Restore/live zoom; picker/login/visibility | existing Chromium mock smoke, adjusted only to scroll the taller scene out before chart interaction (R14–R30, R40, R43–R45) | PASS |
+| Sankey before KPI, larger labels, positive/negative difference, exact link scale, zero/missing/tiny fallback, language/resize/period/Tooltip | model/component tests + rendered Sankey smoke; aggregate model unchanged | PASS |
+| KPI order/grid/time preserved; peak definition on demand | source diff + Chromium info disclosure and daily screenshot | PASS |
+| Backend/static/package regression (R31–R38, R41); Collector | 102 backend tests including actual ZIPs, 23 Collector tests; no AWS/FoxESS | PASS |
+| Real iPhone Safari/Home Screen, physical touch/scroll, actual background throttling and production deployment (R21–R27, R39) | no device or production access | NOT TESTED |
+| Pixel-exact match to supplied house / independent original device assets | no layered source assets supplied; generated clean scene requires visual review | NOT TESTED |
+
+Initial validation failures were corrected: the new fake-clock test needed to tick the existing display clock; old browser coordinates needed to scroll to the chart; the static gzip test depended on removed “ECharts” branding and now compares the served bytes with the built file. Final suites above pass. Production code did not change to satisfy those obsolete test assumptions.

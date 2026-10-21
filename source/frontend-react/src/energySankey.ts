@@ -135,12 +135,12 @@ export function buildEnergySankeyOptions(model: EnergySankeyModel, label: (key: 
           itemStyle: { color: port.colour, borderWidth: 0 },
           label: {
             position: port.side === "source" ? "left" as const : "right" as const,
-            color: "#dce6f4", fontSize: 11, lineHeight: 16,
+            color: "#dce6f4", fontSize: 13, lineHeight: 18, width: 94, overflow: "break" as const,
             formatter: `${label(port.label)}\n${format(port.value!)} kWh`
           }
         })),
         { name: "pool", depth: 1, itemStyle: { color: "#526279", borderColor: "#8090a8", borderWidth: 1 },
-          label: { position: "top" as const, color: "#b8c6d9", fontSize: 11, lineHeight: 16, formatter: label("sankey.pool") } }
+          label: { position: "top" as const, color: "#b8c6d9", fontSize: 13, lineHeight: 18, width: 94, overflow: "break" as const, formatter: label("sankey.pool") } }
       ],
       // A zero-width edge must be absent: ECharts would draw even zero as 1px.
       links: ports.filter(port => port.value! > 0).map(port => ({

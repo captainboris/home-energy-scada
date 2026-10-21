@@ -2,6 +2,12 @@
 
 `CHANGELOG.md` 记录每个版本发生的改变；当前产品 contract 以 `PRODUCT_SPEC.md` 为准。
 
+## v0.6.4 — UI simplification / Current Readings (2026-10-21 Australia/Sydney)
+
+- Current Readings 使用参考图的无文字房屋素材与四组实时 React 读数，SVG 显示方向与动画；零/未知/过期功率不动画，保留 SOC、估算 kWh、方向和 freshness。窄屏改为场景下方两列读数，不新增 polling。
+- Historical Trends 保留四图纵向布局及全部交互，移除图底教学与重复技术文案。Energy Flow 移到 KPI 上方并增大标签；去除重复六项明细（降级状态除外），保留 Partial/质量与非零未解释差额。KPI 网格/顺序/数值/时间不变，峰值口径与 reserve 阈值改为信息提示。
+- 更新 product/frontend 版本与当前 artifact 名称为 0.6.4；main 仍记录 0.6.2，用户报告生产已手动标记 0.6.3。不修改 Web API version、后端代码或基础设施。仅更新 frontend Layer；回滚恢复更新前 Layer。素材由参考图生成清洁版本，非原始分层资产，精确视觉由 PR review 确认。
+
 ## Unreleased
 
 ### 功能

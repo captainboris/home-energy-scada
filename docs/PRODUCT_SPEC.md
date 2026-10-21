@@ -1,6 +1,6 @@
 # 家庭能源 SCADA Product Specification
 
-版本基线：v0.6.2  
+版本基线：v0.6.4
 产品时区：`Australia/Melbourne`
 
 本文是当前 Production 应具备行为的 source of truth；它描述“系统现在应该是什么样”，不是 release history。历史变更记录见 `CHANGELOG.md`。
@@ -11,7 +11,7 @@ Overview 使用 React + TypeScript + Apache ECharts，提供四实体 Current Re
 
 ## 2. Current Readings
 
-- 固定表达 PV、Home Load、Battery、Grid 四个 Energy Flow entities，不通过大量重复 Card 增加信息。
+- 固定表达 PV、Home Load、Battery、Grid 四个 Energy Flow entities；采用已确认的房屋场景，读数由 React 叠加，SVG 按既有通道方向动画，零/未知/过期功率不动画。素材不含示例数值或箭头，正常纵向滚动与 reduced-motion 保留。
 - 页面可见且 session active 时约每 5 秒读取 Fast Telemetry；selected Historian period 不得控制或停止这套更新。
 - hidden tab 暂停 aggressive polling；重新可见时立即 catch-up，然后恢复约 5 秒 cadence。
 - freshness / TTL 必须使用每个 Reading fragment 自己的 source telemetry timestamp；不得使用 Backend `checked_at`、response time 或 Browser poll time。
@@ -91,7 +91,7 @@ Daily 页面可见且 session active 时，summary 请求完成后约 60 秒继�
 
 ### 9.1 Aggregate Energy Flow
 
-Energy Analytics 在现有六项 KPI 后增加独立 Energy Flow，不改变 KPI 布局、请求、约 60 秒刷新或 session lifecycle。
+Energy Analytics 的独立 Energy Flow 位于六项 KPI 上方，不改变 KPI 内部顺序、网格、请求、约 60 秒刷新或 session lifecycle。常驻文案仅保留统计 Pool 的归属限制、必要质量提示与非零差额；详细来源/完整性提示保留于 Hover / Tap Tooltip，正常 Sankey 不重复列六项明细，降级状态仍显示原值与状态。
 六项官方电量连接 `PV / Import / Discharge → Unallocated Energy Pool → Load / Export / Charge`。
 Pool 只是统计汇总，不是物理 AC Bus；不推断任何 source-to-destination attribution，也不将差额称为已确认损耗。
 仅使用同一 `/api/summary/range` response；不读取 Historian 来替代官方电量，不增加 polling。
@@ -117,7 +117,7 @@ Energy Peaks 包含 PV、Home Load、Grid Import、Grid Export，scope 为 selec
 
 ## 12. Caching 与 responsive behaviour
 
-保留现有 Historian cache/read policy，不因 Current Readings 独立 polling 清空 selected history。Desktop Current Readings 为 compact grid；中等 viewport 可 2-column；窄 Mobile 可 1-column，但 Battery state、Grid direction、estimated kWh 与 freshness 不得隐藏。
+保留现有 Historian cache/read policy，不因 Current Readings 独立 polling 清空 selected history。Desktop / tablet Current Readings 四组面板围绕房屋场景；窄 Mobile 在场景下方采用两列读数，Battery state、Grid direction、estimated kWh 与 freshness 不得隐藏。历史趋势仍为四张纵向图，原 KPI/Performance/Peaks/Battery 顺序与网格保持不变。去除重复技术品牌、刷新/来源/范围说明与图底操作教学；峰值时间保留，统计口径和 reserve 阈值放入可点击信息提示。
 
 ## 13. Future Work implementation rule
 

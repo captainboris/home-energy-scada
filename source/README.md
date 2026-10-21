@@ -1,4 +1,4 @@
-# v0.6.2 Source Snapshot
+# Current Source Snapshot (UI v0.6.4)
 
 ## Deployable source
 
@@ -10,10 +10,10 @@
 
 ## Deployment archive boundaries
 
-`build-current-artifacts.sh` 产生的 `home-energy-web-v0.6.2.zip` root只包含 Web/API Python modules；`index.py`来自 `web_index.py`。  
-`home-energy-frontend-v0.6.2.zip` root只包含 `index.html`、`daily.html`、`shared.js`、`shared.css` 与 `assets/`。
+`build-current-artifacts.sh` 产生的 `home-energy-web-v0.6.4.zip` root只包含 Web/API Python modules；`index.py`来自 `web_index.py`。
+`home-energy-frontend-v0.6.4.zip` root只包含 `index.html`、`daily.html`、`shared.js`、`shared.css` 与 `assets/`。
 
-不得加入 `node_modules`、tests、IaC、Collector、credentials、`.env` 或 rollback files。Collector/Lightsail/IaC source仅作为完整审计 snapshot保留，不属于 v0.6.2 deployment。
+不得加入 `node_modules`、tests、IaC、Collector、credentials、`.env` 或 rollback files。Collector/Lightsail/IaC source仅作为完整审计 snapshot保留，不属于本次 UI deployment。
 
 ## Battery capacity
 

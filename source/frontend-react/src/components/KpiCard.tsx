@@ -1,8 +1,9 @@
 import { ReactNode } from "react";
 
-export function KpiCard({ label, description, value = "—", unit = "", meta = "", statusClass = "", loading = false, accent = false, progress = null }: {
+export function KpiCard({ label, description, tooltip, value = "—", unit = "", meta = "", statusClass = "", loading = false, accent = false, progress = null }: {
   label: string;
-  description: string;
+  description?: string;
+  tooltip?: string;
   value?: string;
   unit?: string;
   meta?: string;
@@ -21,7 +22,9 @@ export function KpiCard({ label, description, value = "—", unit = "", meta = "
     </>;
   }
   return <article className={`card kpi-card${accent ? " accent" : ""}`} aria-busy={loading}>
-    <div className="kpi-copy"><div className="label">{label}</div><div className="detail">{description}</div></div>
+    <div className="kpi-copy"><div className="heading-with-info"><div className="label">{label}</div>
+      {tooltip && <details className="info"><summary aria-label={label}>i</summary><div className="info-popover">{tooltip}</div></details>}
+    </div>{description && <div className="detail">{description}</div>}</div>
     <div className="kpi-reading">
       {reading}
       {progress !== null && <div className="coverage"><span style={{ width: `${Math.max(0, Math.min(100, progress))}%` }} /></div>}

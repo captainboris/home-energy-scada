@@ -133,3 +133,16 @@ sha256sum -c SHA256SUMS-v0.6.2.txt
 ```
 
 Backend static-asset integration tests依赖先生成 `frontend-react/dist/`；CI已按此前后顺序执行。`build-current-artifacts.sh`只重建当前 Web/API与Frontend artifacts。历史 rollback binaries从对应 GitHub Release取得，不提交到repository。
+
+## v0.6.4 UI update — 2026-10-21 (Australia/Sydney)
+
+- `npm --prefix source/frontend-react test`: **PASS**, 156 tests (baseline 153).
+- `npm --prefix source/frontend-react run build`: **PASS**, TypeScript + Vite. Existing shared ECharts chunk >500 kB warning remains. Clean house WebP is ~200 KiB, bundled only into Overview as `data:` for the unchanged production CSP; Overview gzip is ~248 kB.
+- `PYTHONPATH=source:source/lightsail-collector python -m unittest discover -s tests -p 'test_*.py' -q`: **PASS**, 102 tests, including current artifact builder, actual Web ZIP isolated import, frontend ZIP resource closure and inline image/CSP contract. Local Python was `/workspace/work/passkey-venv/bin/python`.
+- `PYTHONPATH=source/lightsail-collector python -m unittest discover -s source/lightsail-collector/tests -p 'test_*.py' -q`: **PASS**, 23 tests.
+- Preview on `127.0.0.1:4173`; `node source/frontend-react/tests/browser-smoke.cjs`: **PASS**, actual Chromium with mock APIs and the existing production CSP. Verifies decoded scene image, moving SVG arrow transforms, responsive bounds, bilingual render, peak info disclosure, original chart and page lifecycle checks.
+- `node source/frontend-react/tests/energy-sankey-smoke.cjs`: **PASS**, rendered exact kWh ratios, order, positive/negative difference, no duplicate details, zero/missing/tiny fallback, resize/language/rapid period switch, mobile Tap and Chromium-emulated scroll.
+- Browser scripts use externally provisioned Playwright via `NODE_PATH` / `PLAYWRIGHT_BROWSERS_PATH`; no project dependency added. Screenshots captured locally for desktop/mobile Overview, scene, Analytics and Sankey.
+- **NOT TESTED**: physical iPhone/iPad, Safari/Home Screen, native scroll/Face ID, real background throttling, production API/deployment. No claim of pixel-exact original asset reconstruction; the supplied image was composited and a clean version was generated.
+
+Release check: use the v0.6.4 section in `REGRESSION_CHECKLIST.md`; deploy only the frontend Layer after review. Existing Web/Collector/telemetry/analytics/auth remain unchanged.
