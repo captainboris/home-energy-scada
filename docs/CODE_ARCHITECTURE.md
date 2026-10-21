@@ -25,7 +25,7 @@ Canonical frontend source 是 [source/frontend-react/](../source/frontend-react/
 | `passkey.ts` / `components/PasskeyControls.tsx` | WebAuthn 浏览器序列化及登录/授权管理 UI；browser ceremony cancellation 与登录落点仍由 useSession 拥有，服务端决定验证成功 |
 | [api.ts](../source/frontend-react/src/api.ts) | 正式 React frontend 的 JSON HTTP transport、request timeout 与 error metadata/localization；使用 session 提供的 controller 集合，不拥有 polling 或 session phase |
 | [HistorianChart.tsx](../source/frontend-react/src/components/HistorianChart.tsx) / [historianOptions.ts](../source/frontend-react/src/components/historianOptions.ts) / [zoom.ts](../source/frontend-react/src/zoom.ts) | Component 持有 ECharts instance/lifecycle、gesture/tooltip/selection、local zoom、Sync dirty-state 与 toolbar coordination；`historianOptions.ts` 是纯 options builder，接收显式 label/time formatter，并持有共享 palette/grid；`zoom.ts` 提供 zoom/gesture 计算 helpers |
-| [CurrentReadings.tsx](../source/frontend-react/src/components/CurrentReadings.tsx) / [energyFlow.ts](../source/frontend-react/src/energyFlow.ts) | Reading cards、freshness 展示与显示时钟；energy-flow presentation helpers |
+| [CurrentReadings.tsx](../source/frontend-react/src/components/CurrentReadings.tsx) / [energyFlow.ts](../source/frontend-react/src/energyFlow.ts) | 房屋场景上的 React readings、SVG 方向/动画、freshness 与显示时钟；复用 energy-flow presentation helpers。`CurrentReadings.css` 独立限定样式，`src/assets/current-house.webp?inline` 是无文字底图，构建为 data URI 以兼容既有 Web CSP |
 | [data.ts](../source/frontend-react/src/data.ts) / [live.ts](../source/frontend-react/src/live.ts) / [config.ts](../source/frontend-react/src/config.ts) | Series/latest merge、限定 range 的 snapshot/live merge 与 age formatting；live policy helpers；frontend configuration/constants。Polling 调度仍在页面 |
 | [types.ts](../source/frontend-react/src/types.ts) | Frontend 使用的 API response 与 UI state 类型；server response 由 Python Web/API code 构造 |
 
@@ -67,13 +67,13 @@ session 负责退出/卸载时取消整个集合，401 后的 session phase 由�
 - React 是 multi-page build：[index.html](../source/frontend-react/index.html) → `src/overview.tsx`；[daily.html](../source/frontend-react/daily.html) → `src/daily.tsx`。
 - 在 `source/frontend-react/` 执行 `npm run build`，经 [package.json](../source/frontend-react/package.json) 的 TypeScript/build steps 与 [vite.config.ts](../source/frontend-react/vite.config.ts) 生成 `dist/`：两份 HTML、从 `public/` 复制的 shared assets、hashed `assets/`。`dist/` 是 generated output，不提交 Git。
 - Web deployment handler 是 `index.web`。Canonical builder 将 [web_index.py](../source/web_index.py) 复制为 ZIP root 的 `index.py`，其 `web()` 调用 `lambda_function.lambda_handler`。[source/index.py](../source/index.py) 同时保留 `web` / `collect` wrappers；它不是 canonical Web ZIP 的 `index.py` 来源。
-- Canonical current artifact builder 是 [build-current-artifacts.sh](../source/scripts/build-current-artifacts.sh)，输入已构建的 React `dist/`、显式 Web modules 与 pinned `source/requirements-web.txt`（仅 Web ZIP，Python 3.12 / 默认 arm64）；它不执行 frontend build，也不部署。当前输出位于 `artifacts/v0.6.2/`。新 Web module 必须同步当前 builder（及 full-delivery builder）的显式 module list。
+- Canonical current artifact builder 是 [build-current-artifacts.sh](../source/scripts/build-current-artifacts.sh)，输入已构建的 React `dist/`、显式 Web modules 与 pinned `source/requirements-web.txt`（仅 Web ZIP，Python 3.12 / 默认 arm64）；它不执行 frontend build，也不部署。当前输出位于 `artifacts/v0.6.4/`。新 Web module 必须同步当前 builder（及 full-delivery builder）的显式 module list。
 
 | Artifact | 内容 / 使用边界 |
 | --- | --- |
-| `home-energy-web-v0.6.2.zip` | Web/API Python modules 与上述 `index.py`；无 frontend static files、REST Collector 或 Lightsail code |
-| `home-energy-frontend-v0.6.2.zip` | React `dist/` 内容直接位于 ZIP root；作为 frontend Lambda Layer，解压到 `/opt` |
-| `SHA256SUMS-v0.6.2.txt` | 当前两份 ZIP 的 checksums；与 ZIP 一样是 generated output |
+| `home-energy-web-v0.6.4.zip` | Web/API Python modules 与上述 `index.py`；无 frontend static files、REST Collector 或 Lightsail code |
+| `home-energy-frontend-v0.6.4.zip` | React `dist/` 内容直接位于 ZIP root；作为 frontend Lambda Layer，解压到 `/opt` |
+| `SHA256SUMS-v0.6.4.txt` | 当前两份 ZIP 的 checksums；与 ZIP 一样是 generated output |
 
 `lambda_function.frontend_file()` 逐文件按 configured `FRONTEND_ROOT`、`/opt`、
 Python source root 查找资源；built frontend tests 使用 `FRONTEND_ROOT=dist`，

@@ -1,6 +1,6 @@
 # Home Energy SCADA Product Fact Sheet
 
-Version baseline: **v0.6.2**  
+Version baseline: **v0.6.4**
 Product timezone: **Australia/Melbourne**
 
 This is the short-form contract to read before modifying the project. It
@@ -63,7 +63,7 @@ timestamps or values.
 
 ## 3. Current Readings layout — MUST PRESERVE UNLESS THE TASK IS A UI REDESIGN
 
-Current Readings consists of exactly four primary compact energy-flow cards:
+Current Readings uses the approved house scene with exactly four live React reading panels:
 
 1. **PV**
 2. **Home Load**
@@ -72,11 +72,14 @@ Current Readings consists of exactly four primary compact energy-flow cards:
 
 Responsive layout:
 
-- desktop: 4-column compact grid;
-- tablet / medium viewport: 2-column grid;
-- narrow mobile: 1-column;
+- desktop / tablet: panels positioned around the house scene;
+- narrow mobile: the same scene with a readable two-column panel grid below;
 - responsive collapse must not hide the Battery state, Grid direction,
   estimated battery kWh or freshness information.
+
+The clean static scene contains no labels, numbers or arrows. SVG paths use the
+existing normalized flow directions; zero/unknown/stale flow does not animate.
+Reduced-motion preference suppresses moving arrows. No additional API polling.
 
 Card semantics:
 

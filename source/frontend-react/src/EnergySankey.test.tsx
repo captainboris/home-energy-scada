@@ -56,3 +56,14 @@ describe("EnergySankey lifecycle and exact values", () => {
     view.unmount(); expect(chart.dispose).toHaveBeenCalledTimes(2);
   });
 });
+
+it("keeps concise quality/difference information and original graph values without a duplicate port list", () => {
+  const view = render(<EnergySankey data={body()} period={period} />);
+  expect(view.container.querySelector(".energy-sankey-ports")).toBeNull();
+  expect(view.container.querySelector(".energy-sankey-difference")?.textContent).toContain("5.00 kWh");
+  expect(view.container.querySelector(".energy-sankey-notices")?.textContent).toContain("sankey.partial");
+  expect(chart.setOption.mock.lastCall![0].series[0].links.map((link: {value: number}) => link.value)).toEqual([10, 5, 5, 8, 3, 4]);
+  const balanced = body(); balanced.energy!.load_kwh = 13;
+  view.rerender(<EnergySankey data={balanced} period={period} />);
+  expect(view.container.querySelector(".energy-sankey-difference")).toBeNull();
+});

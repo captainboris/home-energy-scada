@@ -449,6 +449,5 @@ export function HistorianChart({
       <div ref={host} className="echart" role="img" aria-label={`${t(titleKey)}, ${unit}`} />
       <div ref={selectionOverlay} className="zoom-selection" hidden aria-hidden="true" />
     </div>
-    <div className="chart-hint">{t("chart.echartsHint")}</div>
   </section>;
 }

@@ -1,21 +1,21 @@
 product:
   name: home-energy-scada
-  version: 0.6.2
+  version: 0.6.4
   status: release-candidate
-  baseline: 0.6.1
+  baseline: 0.6.3 # user-reported deployed version; source baseline 5cc6394
 
 components:
-  frontend: 0.6.2
+  frontend: 0.6.4
   web_api: 0.6.2
   lightsail_collector: 0.5.0
   infrastructure: unchanged-from-0.6.1
 
 validation:
-  backend_api_tests: 67
+  backend_api_tests: 102
   collector_tests: 23
-  frontend_tests: 31
+  frontend_tests: 156
   automated_failures: 0
-  browser_device_smoke: pending
+  browser_device_smoke: chromium-mock-pass-real-safari-device-not-tested
 
 production_changes_during_generation:
   aws_resources: false

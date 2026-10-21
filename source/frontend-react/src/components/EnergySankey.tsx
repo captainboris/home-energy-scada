@@ -51,20 +51,15 @@ export function EnergySankey({ data, period }: { data: DailyData | null; period:
   return <section className="analytics-section energy-sankey" aria-labelledby="energy-sankey-title" data-flow-mode={model.mode}>
     <h2 id="energy-sankey-title">{t("sankey.title")}</h2>
     <div className="chart-card">
-      <p className="energy-sankey-note">{t("sankey.explanation")}</p>
-      <p className="muted">{t("sankey.hourlyUnknown")}</p>
-      {model.reportStart && model.reportEnd && <p className="muted">{t("sankey.reportRange", { start: model.reportStart, end: model.reportEnd })}</p>}
+      <p className="energy-sankey-note">{t("sankey.compactNote")}</p>
       <ul className="energy-sankey-notices">{model.notices.map(notice => <li key={notice}>{t(`sankey.${notice}`)}</li>)}</ul>
-      {model.sources !== null && model.destinations !== null && <div className="energy-sankey-totals"><span>{t("sankey.sources")}: {format(model.sources)} kWh</span><span>{t("sankey.destinations")}: {format(model.destinations)} kWh</span></div>}
       {canDraw ? <>
         <div ref={host} className="energy-sankey-chart" style={{ height: ENERGY_SANKEY_LAYOUT.height }} role="img" aria-label={t("sankey.chartLabel")} />
-        <p className="muted">{t("sankey.scaleNote")}</p>
       </> : <p role="status">{t(`sankey.state.${model.mode}`)}</p>}
-      {model.difference !== null && <p className="energy-sankey-difference">
-        {t("sankey.difference")}: <strong>{format(model.difference)} kWh</strong><br />
-        <span className="muted">{t("sankey.differenceNote")}</span>
+      {model.difference !== null && model.difference !== 0 && <p className="energy-sankey-difference">
+        {t("sankey.difference")}: <strong>{format(model.difference)} kWh</strong> · {t("sankey.notLoss")}
       </p>}
-      {model.mode !== "loading" && <div className={`energy-sankey-ports${model.mode === "proportions" ? " energy-sankey-proportions" : ""}`}>
+      {model.mode !== "loading" && !canDraw && <div className={`energy-sankey-ports${model.mode === "proportions" ? " energy-sankey-proportions" : ""}`}>
         {(["source", "destination"] as const).map(side => <div key={side}>
           <h3>{t(side === "source" ? "sankey.sources" : "sankey.destinations")}</h3>
           <dl>{model.ports.filter(port => port.side === side).map(port => <div key={port.key} data-energy-port={port.key}>

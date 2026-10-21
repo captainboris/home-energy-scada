@@ -1,15 +1,15 @@
 # UI Behaviour Specification
 
-版本基线：v0.6.2。本文定义当前用户交互 contract。
+版本基线：v0.6.4。本文定义当前用户交互 contract。
 
 ## Aggregate Energy Flow (Energy Analytics only)
 
 - 独立 ECharts Sankey，左侧来源、中间未分配统计 Pool、右侧去向；六项官方 kWh 使用同一比例，不表达配对归属。
-- 正负 accounting difference 均原样展示；Pool 未填满一侧不表示额外流量或已确认损耗。
+- 模块位于六项 Energy KPI 上方；字号增大，来源/去向明细仅在降级状态保留。非零正负 accounting difference 均原样展示；Pool 未填满一侧不表示额外流量或已确认损耗。
 - Hover / Tap Tooltip 显示原始 kWh、占该侧总量的比例、官方报表来源、日报天数及 Partial/小时完整性未知提示。
 - 不拖动节点，不提供 zoom/pan；纵向手势保留 page scroll。数据/语言更新隐藏旧 Tooltip，resize 与卸载清理 chart/observer。
 - 全零只显示零值说明；缺项/不适用/不可比只显示逐项原值与状态。无法按比例绘制的极小流带降级为共享 kWh 尺度的比例条，不设置最小能量宽度。
-- Overview / Historian / 现有 KPI 布局、Period Navigator 与刷新/session 行为保持不变。
+- Historical Trends 四图纵向布局、现有 KPI 网格、Period Navigator 与刷新/session 行为保持不变。常驻方法论说明精简；必要质量提示仍可见，来源/完整性详细信息仍可 Hover / Tap 查看。
 
 ## Desktop mouse interactions
 
@@ -103,7 +103,8 @@ Picker 的开关、选择与关闭动画设计不变。React 卸载结束其自�
 
 ## Responsive
 
-- Desktop：4-column compact Current Readings，Chart 高度适配 viewport。
-- Tablet：2-column Current Readings。
-- Narrow Mobile：允许 1-column，但所有 secondary information 保留。
+- Desktop / tablet：Current Readings 使用房屋场景与四组独立 React 读数；Chart 高度继续适配 viewport。
+- Narrow Mobile（<=600px）：场景下方两列读数，所有 secondary information 保留。
+- SVG 光伏/家庭流向固定，电网/电池方向复用现有 normalized channel helpers；零、未知和过期功率不动画。尊重 reduced-motion，不捕获页面触摸/滚动。
+- 去除图底 Zoom/Pan/Pinch/Y-axis 教学文案，不改变任何图表手势或工具栏行为。
 - Tooltip 必须 `confine` 于 Chart；Drag-select 不得因临时 Tooltip 引起 layout resize。

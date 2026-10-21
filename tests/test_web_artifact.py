@@ -14,7 +14,7 @@ from zipfile import ZipFile
 
 
 PROJECT = Path(__file__).resolve().parents[1]
-ARTIFACTS = PROJECT / 'artifacts' / 'v0.6.2'
+ARTIFACTS = PROJECT / 'artifacts' / 'v0.6.4'
 
 
 class Resources(HTMLParser):
@@ -38,7 +38,7 @@ class WebArtifactTests(unittest.TestCase):
                        check=True, capture_output=True, text=True, timeout=120)
 
     def test_web_zip_contains_exact_application_modules_and_no_frontend_or_collector(self):
-        with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.2.zip') as archive:
+        with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.4.zip') as archive:
             self.assertIsNone(archive.testzip())
             names = {name.removeprefix('./') for name in archive.namelist()}
         self.assertTrue({'index.py', 'lambda_function.py', 'range_analytics.py', 'passkeys.py',
@@ -85,7 +85,7 @@ print(json.dumps({'isolated_import': 'PASS', 'index.web_health': 'PASS'}))
 '''
         with tempfile.TemporaryDirectory(prefix='scada-web-zip-') as directory:
             root = Path(directory)
-            with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.2.zip') as archive:
+            with ZipFile(ARTIFACTS / 'home-energy-web-v0.6.4.zip') as archive:
                 archive.extractall(root)
             from passkey_fixtures import Authenticator
             from webauthn.helpers import bytes_to_base64url
@@ -119,7 +119,7 @@ print(json.dumps({'isolated_import': 'PASS', 'index.web_health': 'PASS'}))
                          {'isolated_import': 'PASS', 'index.web_health': 'PASS'})
 
     def test_frontend_zip_closes_html_and_javascript_resource_dependencies(self):
-        with ZipFile(ARTIFACTS / 'home-energy-frontend-v0.6.2.zip') as archive:
+        with ZipFile(ARTIFACTS / 'home-energy-frontend-v0.6.4.zip') as archive:
             self.assertIsNone(archive.testzip())
             content = {name.removeprefix('./'): archive.read(name)
                        for name in archive.namelist() if not name.endswith('/')}

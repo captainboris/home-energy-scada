@@ -13,7 +13,6 @@ export function Header({ page, period, onLogout }: {
   const query = window.location.search;
   return <header>
     <div>
-      <div className="eyebrow">HOME ENERGY / 06 · REACT + ECHARTS</div>
       <h1>{t(page === "overview" ? "app.title" : "daily.title")}</h1>
       <p className="muted">{t(page === "overview" ? "overview.subtitle" : "daily.subtitle")}</p>
     </div>
@@ -29,7 +28,6 @@ export function Header({ page, period, onLogout }: {
         <button type="button" className={language === "en" ? "active" : ""}
           aria-pressed={language === "en"} onClick={() => setLanguage("en")}>EN</button>
       </div>
-      <span className="pill">FOX · HYBRID HISTORIAN</span>
       <button type="button" onClick={onLogout}>{t("common.logout")}</button>
     </div>
   </header>;

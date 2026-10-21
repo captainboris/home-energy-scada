@@ -24,6 +24,12 @@ function json(route, body) {
 }
 
 async function mockApi(page) {
+  // Apply the production image policy; the clean house asset must work without a Web change.
+  await page.route(/^http:\/\/127\.0\.0\.1:4173\/(?:daily\.html)?(?:\?.*)?$/, async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(),
+      "content-security-policy": "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'" } });
+  });
   await page.route("**/api/session", route => json(route, {
     ok: true, last_activity: Math.floor(fixtureNow / 1000), idle_deadline: Math.floor(fixtureNow / 1000) + 1800, idle_seconds: 1800
   }));
@@ -97,6 +103,29 @@ async function mockApi(page) {
     || await page.getByRole("button", { name: /复原|恢复|Restore/ }).count() !== 0) {
     throw new Error("Zoom toolbar must be hidden at the base viewport");
   }
+  await page.waitForFunction(() => {
+    const house = document.querySelector(".readings-house");
+    return house instanceof HTMLImageElement && house.complete && house.naturalWidth > 0 && house.src.startsWith("data:image/webp;");
+  });
+  if (await page.locator(".chart-hint, .eyebrow, .pill").count()) throw new Error("Redundant technical copy remains");
+  const arrow = page.locator(".power-path.is-flowing .power-arrow").first();
+  const before = await arrow.evaluate(node => [node.getCTM().e, node.getCTM().f]);
+  await page.waitForTimeout(350);
+  const after = await arrow.evaluate(node => [node.getCTM().e, node.getCTM().f]);
+  if (String(before) === String(after)) throw new Error("SVG flow arrow is not moving");
+  await page.locator(".current-readings").screenshot({ path: path.join(output, "current-readings-desktop.png") });
+  for (const width of [320, 390, 600, 601, 768, 850, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const fits = await page.locator(".energy-flow-card").evaluateAll(cards => cards.every(card => {
+      const box = card.getBoundingClientRect();
+      return box.left >= 0 && box.right <= window.innerWidth && card.scrollWidth <= card.clientWidth;
+    }));
+    if (!fits) throw new Error(`Current Readings overflow at ${width}px`);
+  }
+  await page.evaluate(() => window.HomeEnergyUI.setLanguage("zh-CN"));
+  await page.locator(".current-readings").screenshot({ path: path.join(output, "current-readings-zh.png") });
+  await page.evaluate(() => window.HomeEnergyUI.setLanguage("en"));
+  await firstCard.scrollIntoViewIfNeeded();
   const firstChartBox = await page.locator(".echart").first().boundingBox();
   if (!firstChartBox) throw new Error("Missing first chart bounds");
   const plotLeft = firstChartBox.x + 58;
@@ -157,6 +186,8 @@ async function mockApi(page) {
   await mobilePage.goto("http://127.0.0.1:4173/?view=day&date=2026-10-01", { waitUntil: "networkidle" });
   await mobilePage.waitForSelector(".echart canvas");
   const mobileChart = mobilePage.locator(".echart").first();
+  await mobilePage.locator(".current-readings").screenshot({ path: path.join(output, "current-readings-mobile.png") });
+  await mobileChart.scrollIntoViewIfNeeded();
   const mobileBox = await mobileChart.boundingBox();
   if (!mobileBox) throw new Error("Missing mobile chart bounds");
   const mobileLeft = mobileBox.x + 58;
@@ -222,6 +253,10 @@ async function mockApi(page) {
   await daily.waitForSelector(".kpi-card");
   if (await daily.locator(".kpi-card").count() < 10) throw new Error("Daily KPI cards did not render");
   if (!(await daily.locator("body").innerText()).includes("Home Load Peak")) throw new Error("Home Load Peak did not render");
+  const peakInfo = daily.locator(".kpi-card .info").first();
+  await peakInfo.locator("summary").click();
+  if (!(await peakInfo.locator(".info-popover").isVisible())) throw new Error("Peak definition is not available on demand");
+  await peakInfo.locator("summary").click();
   await daily.screenshot({ path: path.join(output, "daily-desktop.png"), fullPage: true });
 
   await require("./page-lifecycle-smoke.cjs")({ browser, mockApi, fixtureNow });

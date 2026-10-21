@@ -1,3 +1,16 @@
+# v0.6.4 Frontend-only update
+
+- Build with `npm --prefix source/frontend-react ci`, `npm --prefix source/frontend-react test`, `npm --prefix source/frontend-react run build`, then `bash source/scripts/build-current-artifacts.sh`.
+- After review/merge, publish `artifacts/v0.6.4/home-energy-frontend-v0.6.4.zip` as a new version of the existing frontend Layer and attach that version to the existing Web Lambda. No Web code, environment, CSP, IAM or ingestion changes are required. The builder also creates a Web ZIP; this UI task does **not** require deploying it.
+- The house image is bundled as a data URI under the existing image CSP. Verify the scene loads, live values/directions/stale state, 320px/mobile layout, language, period controls, chart interactions and Sankey quality messages on target browsers.
+- Version is tracked in `VERSION` / frontend package metadata; technical version labels are intentionally absent from the UI. The unchanged Web API version is not a frontend-version check.
+- Rollback: restore the frontend Layer version attached immediately before this update (user-reported v0.6.3). No database migration or Web package rollback.
+- This task does not deploy; real iPhone/Safari and production checks remain required.
+
+---
+
+The following v0.6.2 instructions are historical; use the frontend-only steps above for this change.
+
 # v0.6.2 Deployment Guide
 
 ## Changed deployment units
